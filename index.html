@@ -1,106 +1,146 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebird Re - เชื่อมต่อกับ World ID</title>
-    
-    <!-- เพิ่มสไตล์เล็กน้อยเพื่อให้ดูดีขึ้น -->
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-            color: #1c1e21;
-            text-align: center;
-        }
-        .container {
-            background: white;
-            padding: 2rem 3rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #d9534f; /* สีแดงสไตล์ Firebird */
-        }
-        p {
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
-            color: #606770;
-        }
-        /* นี่คือส่วนที่ปุ่ม World ID จะแสดง */
-        #worldcoin-button-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 50px; /* กำหนดความสูงขั้นต่ำเผื่อไว้ */
-        }
-    </style>
-</head>
-<body>
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 
-    <div class="container">
-        <!-- เนื้อหาเดิมของคุณ -->
-        <h1>Firebird Re</h1>
-        <p>ยินดีต้อนรับ! ยืนยันตัวตนของคุณเพื่อเข้าสู่ระบบ</p>
+const firebaseConfig = JSON.parse(__firebase_config);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        <!-- สร้างตำแหน่งสำหรับวางปุ่ม World ID -->
-        <div id="worldcoin-button-container"></div>
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Use a specific document to store the promotion text
+const promotionDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'promotions', 'currentPromotion');
+
+// The ID of the first user who logs in will be considered the "admin"
+let adminUid = null;
+
+export default function App() {
+  const [promotionText, setPromotionText] = useState('กำลังโหลด...');
+  const [editorText, setEditorText] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState('');
+
+  useEffect(() => {
+    // Sign in anonymously and check for the admin user
+    const signInAndCheckAdmin = async () => {
+      try {
+        const userCredential = await signInAnonymously(auth);
+        const user = userCredential.user;
+        setCurrentUser(user);
+
+        // Check if admin user exists in Firestore
+        const adminDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'appSettings', 'admin');
+        const adminDocSnap = await getDoc(adminDocRef);
+        
+        if (adminDocSnap.exists()) {
+          adminUid = adminDocSnap.data().uid;
+        } else {
+          // If no admin exists, the current user becomes the admin
+          await setDoc(adminDocRef, { uid: user.uid });
+          adminUid = user.uid;
+        }
+        
+        setIsAdmin(user.uid === adminUid);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error during authentication or admin check:", error);
+        setLoading(false);
+      }
+    };
+
+    signInAndCheckAdmin();
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      // Listen for real-time changes to the promotion text
+      const unsubscribe = onSnapshot(promotionDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setPromotionText(data.text);
+          setEditorText(data.text);
+        } else {
+          // Set initial default text if document doesn't exist
+          const defaultText = `🎁 โปรโมชั่นพิเศษ\nแจกคริปโต มูลค่า 1,900 บาท จำกัดจำนวน 8 คนเท่านั้น!\n1. ลงทะเบียน World ID\nคลิก: https://world.org/join/OD4QYLW`;
+          setPromotionText(defaultText);
+          setEditorText(defaultText);
+          setDoc(promotionDocRef, { text: defaultText });
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [loading]);
+
+  const handleSave = async () => {
+    if (!isAdmin) {
+      setSaveStatus('คุณไม่มีสิทธิ์แก้ไขข้อความนี้');
+      return;
+    }
+
+    setSaveStatus('กำลังบันทึก...');
+    try {
+      await setDoc(promotionDocRef, { text: editorText });
+      setSaveStatus('บันทึกเรียบร้อย!');
+    } catch (error) {
+      console.error("Error updating document:", error);
+      setSaveStatus('บันทึกไม่สำเร็จ: ' + error.message);
+    }
+    setTimeout(() => setSaveStatus(''), 3000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-8 flex flex-col items-center font-sans">
+      <h1 className="text-4xl font-bold mb-8 text-indigo-800">ระบบจัดการโปรโมชั่น</h1>
+      
+      {loading ? (
+        <p className="text-center text-lg text-gray-600">กำลังโหลด...</p>
+      ) : (
+        <>
+          {/* Promotion Display Area */}
+          <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">ข้อความโปรโมชั่นปัจจุบัน:</h2>
+            <pre className="text-gray-700 whitespace-pre-wrap leading-relaxed font-sans text-lg">{promotionText}</pre>
+          </div>
+
+          {/* Admin Panel */}
+          {isAdmin && (
+            <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800">แก้ไขข้อความโปรโมชั่น (Admin Only)</h2>
+              <textarea
+                className="w-full h-48 p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800 font-sans text-base resize-none"
+                value={editorText}
+                onChange={(e) => setEditorText(e.target.value)}
+              />
+              <div className="flex justify-between items-center mt-4">
+                <button
+                  className="bg-indigo-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-indigo-700 transition duration-300 transform hover:scale-105"
+                  onClick={handleSave}
+                >
+                  บันทึก
+                </button>
+                {saveStatus && (
+                  <p className={`text-sm font-semibold ${saveStatus.includes('สำเร็จ') ? 'text-green-600' : 'text-red-600'}`}>
+                    {saveStatus}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* User Info for debugging */}
+          <div className="mt-8 text-center text-gray-500 text-sm">
+            <p>User ID: {currentUser?.uid || 'N/A'}</p>
+            <p className="text-xs">
+              ** ผู้ใช้คนแรกที่เข้าสู่ระบบจะเป็น Admin **
+            </p>
+          </div>
+        </>
+      )}
     </div>
-
-    <!-- Script ของ World ID Kit: เพิ่ม onload="initWorldID()" -->
-    <!-- การทำเช่นนี้เป็นการสั่งให้เบราว์เซอร์เรียกใช้ฟังก์ชัน initWorldID() หลังจากที่ไฟล์ idkit.js โหลดเสร็จแล้วเท่านั้น -->
-    <script src="https://unpkg.com/@worldcoin/idkit@latest/build/idkit.js" onload="initWorldID()"></script>
-
-    <!-- โค้ด JavaScript สำหรับตั้งค่า World ID -->
-    <script type="text/javascript">
-        // ห่อหุ้มโค้ดทั้งหมดไว้ในฟังก์ชัน initWorldID
-        function initWorldID() {
-            // ฟังก์ชันที่จะทำงานเมื่อผู้ใช้ยืนยันตัวตนสำเร็จ
-            const onSuccess = (result) => {
-                console.log("การยืนยันตัวตนสำเร็จ:", result);
-                alert("ยืนยันตัวตนสำเร็จ! ยินดีต้อนรับสู่ Firebird Re");
-                document.querySelector('.container').innerHTML = '<h1>ยืนยันตัวตนสำเร็จ!</h1><p>ขอบคุณที่ใช้ World ID</p>';
-            };
-
-            // ฟังก์ชันที่จะทำงานเมื่อมีข้อผิดพลาด
-            const onError = (error) => {
-                console.error("เกิดข้อผิดพลาด:", error);
-                alert("การยืนยันตัวตนล้มเหลว กรุณาลองใหม่อีกครั้ง");
-            };
-
-            // เริ่มการทำงานของ IDKit เพื่อสร้างปุ่ม
-            try {
-                // ตรวจสอบอีกครั้งให้แน่ใจว่า window.IDKit พร้อมใช้งาน
-                if (window.IDKit) {
-                    window.IDKit.init({
-                        container: document.getElementById('worldcoin-button-container'),
-                        
-                        // --- ✅ อัปเดตเรียบร้อยแล้ว ---
-                        app_id: "app_b67c4099dbab19c76ac3cae0a78a89f0", 
-                        
-                        // ใส่ชื่อ Action ที่คุณสร้างไว้ใน Portal
-                        action: "login-firebird", 
-                        //------------------------------------
-
-                        onSuccess: onSuccess,
-                        onError: onError,
-                    });
-                } else {
-                     // กรณีที่เกิดปัญหาไม่คาดคิดและ IDKit ยังไม่พร้อม
-                    throw new Error("IDKit script loaded but window.IDKit is not available.");
-                }
-            } catch (error) {
-                console.error("ไม่สามารถเริ่มต้น IDKit ได้:", error);
-                document.getElementById('worldcoin-button-container').innerText = "ไม่สามารถโหลดปุ่ม World ID ได้";
-            }
-        }
-    </script>
-
-</body>
-</html>
+  );
+}
