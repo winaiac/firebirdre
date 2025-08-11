@@ -1,13 +1,226 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SusanAIonline</title>
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for full-screen video and background */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
+            transition: background-color 0.5s ease; /* Smooth transition for light/dark mode */
+        }
+
+        /* Dark mode styles */
+        body.dark-mode {
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+        }
+
+        .video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: black;
+            z-index: 1000; /* Ensure video is on top */
+        }
+
+        .video-container video {
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            object-fit: cover; /* Cover the entire container */
+        }
+
+        .skip-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1001; /* Above video */
+        }
+
+        .main-app-container {
+            display: none; /* Hidden by default */
+            width: 100vw;
+            height: 100vh;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.5s ease-in-out; /* Smooth transition for background image */
+            overflow-y: auto; /* Allow scrolling for content if needed */
+        }
+
+        /* Overlay for flower message */
+        .flower-message-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            display: none; /* Hidden by default */
+        }
+
+        .flower-message-box {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            max-width: 90%;
+            color: #333;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Video Playback Section -->
+    <div id="videoContainer" class="video-container">
+        <video id="introVideo" autoplay muted playsinline>
+            <!--
+                IMPORTANT: Replace these placeholder URLs with the actual hosted URLs of your video files.
+                Example: <source src="https://your-domain.com/eyep.mp4" type="video/mp4">
+            -->
+            <source src="https://winaiac.github.io/firebirdre/eyep.mp4" type="video/mp4">
+            <source src="https://winaiac.github.io/firebirdre/yasu.mp4" type="video/mp4">
+            <source src="https://winaiac.github.io/firebirdre/pandora.mp4" type="video/mp4">
+            เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
+        </video>
+        <button id="skipButton" class="skip-button bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+            ข้ามเข้าแอป
+        </button>
+    </div>
+
+    <!-- Main Application Content -->
+    <div id="mainAppContainer" class="main-app-container flex flex-col items-center justify-center p-4">
+        <div class="bg-white bg-opacity-80 p-8 rounded-xl shadow-2xl max-w-2xl w-full text-center">
+            <h1 class="text-4xl font-extrabold mb-6 text-gray-900">SusanAIonline</h1>
+            <p class="text-lg mb-8 text-gray-700">
+                ยินดีต้อนรับสู่ SusanAIonline ที่นี่คุณสามารถรำลึกถึงผู้เป็นที่รักที่ล่วงลับไปแล้ว
+                และสัมผัสความทรงจำอันล้ำค่า
+            </p>
+
+            <div class="mb-8">
+                <textarea class="w-full p-4 rounded-lg border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                          rows="5" placeholder="เขียนความทรงจำหรือข้อความถึงผู้ล่วงลับที่นี่..."></textarea>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4 mb-8">
+                <button id="changeBgButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    เปลี่ยนพื้นหลัง
+                </button>
+                <button id="toggleLightButton" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    เปิด/ปิดไฟ
+                </button>
+                <button id="buyFlowerButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    ซื้อดอกไม้เคารพ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flower Message Overlay -->
+    <div id="flowerMessageOverlay" class="flower-message-overlay">
+        <div class="flower-message-box">
+            <h2 class="text-2xl font-bold mb-4">ขอบคุณสำหรับการซื้อดอกไม้!</h2>
+            <p class="text-lg mb-6">ดอกไม้จะคงอยู่ได้ 7 วัน ก่อนที่จะเหี่ยวแห้งไป</p>
+            <button id="closeFlowerMessage" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-full shadow-md transition duration-300">
+                ตกลง
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const introVideo = document.getElementById('introVideo');
+        const videoContainer = document.getElementById('videoContainer');
+        const skipButton = document.getElementById('skipButton');
+        const mainAppContainer = document.getElementById('mainAppContainer');
+        const changeBgButton = document.getElementById('changeBgButton');
+        const toggleLightButton = document.getElementById('toggleLightButton');
+        const buyFlowerButton = document.getElementById('buyFlowerButton');
+        const flowerMessageOverlay = document.getElementById('flowerMessageOverlay');
+        const closeFlowerMessage = document.getElementById('closeFlowerMessage');
+
+        // Array of placeholder background image URLs
+        // IMPORTANT: Replace these placeholder URLs with the actual hosted URLs of your image files.
+        // Example: const backgroundImages = ['https://your-domain.com/eyepp.png', 'https://your-domain.com/pandorap.png', 'https://your-domain.com/yasup.png'];
+        const backgroundImages = [
+            'https://winaiac.github.io/firebirdre/eyepp.png', // Simulates eyepp.png
+            'https://winaiac.github.io/firebirdre/pandorap.png', // Simulates pandorap.png
+            'https://winaiac.github.io/firebirdre/yasup.png'  // Simulates yasup.png
+        ];
+        let currentBgIndex = 0;
+        let isDarkMode = false; // Initial state for light/dark mode
+
+        // Function to show the main app and hide the video
+        function showMainApp() {
+            videoContainer.style.display = 'none';
+            mainAppContainer.style.display = 'flex';
+            // Set initial background image
+            mainAppContainer.style.backgroundImage = `url('${backgroundImages[currentBgIndex]}')`;
+        }
+
+        // Event listener for video ending
+        introVideo.addEventListener('ended', showMainApp);
+
+        // Event listener for skip button
+        skipButton.addEventListener('click', showMainApp);
+
+        // Event listener for changing background
+        changeBgButton.addEventListener('click', () => {
+            currentBgIndex = (currentBgIndex + 1) % backgroundImages.length;
+            mainAppContainer.style.backgroundImage = `url('${backgroundImages[currentBgIndex]}')`;
+        });
+
+        // Event listener for toggling light/dark mode
+        toggleLightButton.addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        });
+
+        // Event listener for buying flowers
+        buyFlowerButton.addEventListener('click', () => {
+            flowerMessageOverlay.style.display = 'flex';
+        });
+
+        // Event listener to close flower message
+        closeFlowerMessage.addEventListener('click', () => {
+            flowerMessageOverlay.style.display = 'none';
+        });
+
+        // Ensure video plays on iOS devices by calling play() after user interaction (or simulating it)
+        // This is a common workaround for iOS autoplay policies
+        document.addEventListener('DOMContentLoaded', () => {
+            introVideo.play().catch(error => {
+                console.log("Autoplay prevented:", error);
+                // If autoplay is prevented, show a play button or just transition to main app
+                // For this example, we'll just log and let the skip button handle it.
+            });
+        });
+
+    </script>
+</body>
 </html>
