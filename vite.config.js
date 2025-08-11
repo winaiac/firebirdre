@@ -10,6 +10,6 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     // ล้างโฟลเดอร์ dist ก่อน build ทุกครั้ง
-    emptyOutDir: true
+    emptyOutDir: true,
   }
 })
