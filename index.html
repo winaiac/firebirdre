@@ -205,7 +205,7 @@ export default function App() {
           setEditorText(data.text);
         } else {
           // Set initial default text if the document does not exist.
-          const defaultText = `🎁 โปรโมชั่นพิเศษ\nแจกคริปโต มูลค่า 1,900 บาท จำกัดจำนวน 8 คนเท่านั้น!\n1. ลงทะเบียน World ID\nคลิก: https://world.org/join/OD4QYLW`;
+          const defaultText = `โปรโมชั่นพิเศษ\nแจกคริปโต มูลค่า 1,900 บาท จำกัดจำนวน 8 คนเท่านั้น!\n1. ลงทะเบียน World ID\nคลิก: https://world.org/join/OD4QYLW`;
           setPromotionText(defaultText);
           setEditorText(defaultText);
           setDoc(promotionDocRef, { text: defaultText });
