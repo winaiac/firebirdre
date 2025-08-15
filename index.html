@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SusanAI Online - Full Stack Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
 
@@ -133,7 +137,6 @@
             </button>
             <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" class="w-24">
         </div>
-        <!-- UPDATED: Changed the audio source -->
         <audio id="backgroundAudio" loop src="https://winaiac.github.io/firebirdre/Dream_It_Possible.mp3"></audio>
 
         <!-- Modals for features -->
@@ -166,6 +169,22 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyConQt3RWBYU3XGyTWvhU6O5SKk3mTgCHo",
+            authDomain: "susanonline-9ccbb.firebaseapp.com",
+            projectId: "susanonline-9ccbb",
+            storageBucket: "susanonline-9ccbb.appspot.com",
+            messagingSenderId: "186979315282",
+            appId: "1:186979315282:web:3d0fef4f79d6954ca2f98b",
+            measurementId: "G-8EF06Q3DNH"
+        };
+
+        // --- Initialize Firebase ---
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
         // --- Elements ---
         const videoContainer = document.getElementById('videoContainer');
         const skipButton = document.getElementById('skipButton');
@@ -220,14 +239,42 @@
             isLoggedIn: false,
             isLightOn: false,
             isAdmin: false,
-            user: { worldId: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" },
+            user: { userId: null, worldId: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" },
             activity: { isActive: false, startTime: null, pointsCommitted: 0 },
             sound: { isPlaying: false, volume: 0.5 }
         };
 
-        // --- Firebase Simulation using localStorage ---
-        function saveData(key, data) { localStorage.setItem(`susanai_${key}`, JSON.stringify(data)); }
-        function loadData(key) { const data = localStorage.getItem(`susanai_${key}`); return data ? JSON.parse(data) : null; }
+        // --- Firebase Functions ---
+        async function saveData(userId, data) {
+            if (!userId) return;
+            console.log(`Saving to Firebase for user: ${userId}`, data);
+            try {
+                await db.collection('users').doc(userId).set(data, { merge: true });
+            } catch (error) {
+                console.error("Error saving data to Firebase: ", error);
+            }
+        }
+
+        async function loadData(userId) {
+            if (!userId) return null;
+            console.log(`Loading from Firebase for user: ${userId}`);
+            try {
+                const docRef = db.collection('users').doc(userId);
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    return doc.data();
+                } else {
+                    console.log("No existing user data, creating new record.");
+                    // Create a default record for a new user
+                    const defaultData = { susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
+                    await saveData(userId, defaultData);
+                    return defaultData;
+                }
+            } catch (error) {
+                console.error("Error loading data from Firebase: ", error);
+                return null;
+            }
+        }
 
         const backgroundData = {
             eyepp: { src: 'https://winaiac.github.io/firebirdre/eyepp.png', effect: 'wind' },
@@ -238,7 +285,7 @@
             prasatp: { src: 'https://winaiac.github.io/firebirdre/prasatp.png', effect: 'bubbles' }
         };
         
-        // --- Canvas & Effects Logic ---
+        // --- Canvas & Effects Logic (No changes) ---
         function resizeCanvas() { effectCanvas.width = window.innerWidth; effectCanvas.height = window.innerHeight; }
         window.addEventListener('resize', resizeCanvas); resizeCanvas();
         function clearCanvas() { ctx.clearRect(0, 0, effectCanvas.width, effectCanvas.height); }
@@ -258,13 +305,10 @@
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             clearCanvas();
             document.querySelectorAll('.wind-effect-overlay').forEach(el => el.remove());
-
             const data = backgroundData[bgKey];
             if (!data) return;
-
             document.body.style.cursor = 'wait';
             bgImage.style.opacity = 0;
-            
             setTimeout(() => {
                 const img = new Image();
                 img.src = data.src;
@@ -273,23 +317,10 @@
                     bgImage.src = data.src;
                     bgImage.style.opacity = 1;
                     const effect = effectMap[data.effect];
-                    if (effect) {
-                        effect.init();
-                        activeEffect = effect.draw;
-                        if (bgKey === 'wind') {
-                            const windOverlay = document.createElement('div');
-                            windOverlay.className = 'wind-effect-overlay';
-                            document.querySelector('.background-container').appendChild(windOverlay);
-                        }
-                    } else {
-                        activeEffect = null;
-                    }
+                    if (effect) { effect.init(); activeEffect = effect.draw; if (bgKey === 'wind') { const windOverlay = document.createElement('div'); windOverlay.className = 'wind-effect-overlay'; document.querySelector('.background-container').appendChild(windOverlay); } } else { activeEffect = null; }
                     animateLoop();
                 };
-                img.onerror = () => {
-                    document.body.style.cursor = 'default';
-                    alert(`เกิดข้อผิดพลาด: ไม่สามารถโหลดรูปภาพพื้นหลังสำหรับ '${bgKey}' ได้`);
-                };
+                img.onerror = () => { document.body.style.cursor = 'default'; alert(`เกิดข้อผิดพลาด: ไม่สามารถโหลดรูปภาพพื้นหลังสำหรับ '${bgKey}' ได้`); };
             }, 500);
         }
 
@@ -303,7 +334,7 @@
             userSection.classList.toggle('hidden', state.isLoggedIn);
             userInfo.classList.toggle('hidden', !state.isLoggedIn);
             document.querySelectorAll('.member-only').forEach(el => el.classList.toggle('hidden', !state.isLoggedIn));
-            if (state.isLoggedIn) { usernameDisplay.textContent = state.user.worldId || "Member"; }
+            if (state.isLoggedIn) { usernameDisplay.textContent = state.user.worldId || state.user.userId; }
             wldBalanceEl.textContent = state.user.wldBalance.toFixed(2);
             susanPointsEl.textContent = state.user.susanPoints;
             memorialText.value = state.user.memorial;
@@ -315,18 +346,33 @@
             if (state.user.transactions.length > 20) state.user.transactions.pop();
         }
 
-        function handleLogin() {
-            state.isLoggedIn = true;
-            state.user.worldId = "verified_member_123";
-            const loadedData = loadData(state.user.worldId);
-            if (loadedData) { state.user = { ...state.user, ...loadedData }; }
-            updateUI();
+        async function handleLogin() {
+            try {
+                const userCredential = await auth.signInAnonymously();
+                const userId = userCredential.user.uid;
+                state.isLoggedIn = true;
+                state.user.userId = userId;
+                
+                // For now, we still simulate the World ID part
+                state.user.worldId = "@winai.9407"; 
+
+                const loadedData = await loadData(userId);
+                if (loadedData) {
+                    // Make sure transactions is an array
+                    loadedData.transactions = loadedData.transactions || [];
+                    state.user = { ...state.user, ...loadedData };
+                }
+                updateUI();
+            } catch (error) {
+                console.error("Error during anonymous login:", error);
+            }
         }
 
-        function handleLogout() {
-            saveData(state.user.worldId, state.user);
+        async function handleLogout() {
+            await saveData(state.user.userId, state.user);
+            await auth.signOut();
             state.isLoggedIn = false;
-            state.user.worldId = null;
+            state.user = { userId: null, worldId: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" }; // Reset state
             updateUI();
         }
 
@@ -335,11 +381,14 @@
         window.addEventListener('mousemove', showControlPanel);
         skipButton.addEventListener('click', showMainApp);
         videoContainer.querySelector('video').addEventListener('ended', showMainApp);
-        loginBtn.addEventListener('click', () => { alert('การเข้าสู่ระบบด้วย World ID จะถูกนำมาใช้ในเร็วๆ นี้'); handleLogin(); });
+        
+        // This button now represents the entire login flow
+        loginBtn.addEventListener('click', handleLogin);
         logoutBtn.addEventListener('click', handleLogout);
+
         inviteBtn.addEventListener('click', () => {
             if (!state.user.worldId) return;
-            const inviteLink = `https://susanai.online/invite?ref=${state.user.worldId}`;
+            const inviteLink = `https://winaiac.github.io/firebirdre/?ref=${state.user.worldId}`;
             navigator.clipboard.writeText(`เข้าร่วม SusanAI Online และรับสิทธิพิเศษ! สนับสนุนโดยแอป Susan Online: ${inviteLink}`);
             alert('คัดลอกลิงก์เชิญแล้ว!');
         });
@@ -354,11 +403,12 @@
             state.user.susanPoints += pointsToAdd;
             addTransaction(`Exchange ${wldAmount} WLD`, pointsToAdd);
             updateUI();
+            saveData(state.user.userId, { wldBalance: state.user.wldBalance, susanPoints: state.user.susanPoints, transactions: state.user.transactions });
         });
 
         saveMemorialBtn.addEventListener('click', () => {
             state.user.memorial = memorialText.value;
-            saveData(state.user.worldId, { memorial: state.user.memorial });
+            saveData(state.user.userId, { memorial: state.user.memorial });
             alert('บันทึกข้อความแล้ว');
         });
 
@@ -372,6 +422,7 @@
             state.activity = { isActive: true, startTime: Date.now(), pointsCommitted: amount };
             addTransaction('เข้าร่วมกิจกรรมปลูกป่า', -amount);
             updateUI();
+            saveData(state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
             activityStartDiv.classList.add('hidden');
             activityProgressDiv.classList.remove('hidden');
             activityPointsEl.textContent = amount;
@@ -406,6 +457,7 @@
             activityStartDiv.classList.remove('hidden');
             activityProgressDiv.classList.add('hidden');
             updateUI();
+            saveData(state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
         });
         
         homeLink.addEventListener('click', (e) => {
@@ -420,6 +472,7 @@
                 state.user.susanPoints -= 10;
                 addTransaction('ซื้อดอกไม้', -10);
                 updateUI();
+                saveData(state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
                 flowerModal.style.display = 'flex';
             } else {
                 alert('คะแนน Susan ไม่เพียงพอ!');
