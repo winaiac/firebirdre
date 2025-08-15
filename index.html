@@ -38,7 +38,6 @@
 <body class="bg-gray-900 text-gray-100 min-h-screen">
 
     <div id="videoContainer" class="video-container">
-        <!-- FIXED: Added fallback video sources to prevent NotSupportedError -->
         <video id="introVideo" autoplay muted playsinline>
             <source src="https://winaiac.github.io/firebirdre/eyep.mp4" type="video/mp4">
             <source src="https://winaiac.github.io/firebirdre/yasu.mp4" type="video/mp4">
@@ -134,7 +133,8 @@
             </button>
             <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" class="w-24">
         </div>
-        <audio id="backgroundAudio" loop src="https://winaiac.github.io/firebirdre/relax-sound.mp3"></audio>
+        <!-- UPDATED: Changed the audio source -->
+        <audio id="backgroundAudio" loop src="https://winaiac.github.io/firebirdre/Dream_It_Possible.mp3"></audio>
 
         <!-- Modals for features -->
         <div id="activityModal" class="modal-overlay">
