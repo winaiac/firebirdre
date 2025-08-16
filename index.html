@@ -4,13 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- NEW: Content Security Policy to allow external scripts -->
+    <meta http-equiv="Content-Security-Policy" content="
+        script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://unpkg.com https://verify.worldcoin.org;
+        connect-src 'self' wss://*.firebaseio.com https://susanonline-9ccbb.firebaseio.com https://verify.worldcoin.org;
+        frame-src 'self' https://verify.worldcoin.org;
+        img-src 'self' data: https://*;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        media-src 'self' https://*;
+    ">
     <title>SusanAI Online - Full Stack Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <!-- UPDATED: Worldcoin IDKit SDK from unpkg CDN -->
+    <!-- Worldcoin IDKit SDK (Standalone Version for Vanilla JS) -->
     <script src="https://unpkg.com/@worldcoin/idkit-standalone@1.0.0/build/idkit-standalone.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
