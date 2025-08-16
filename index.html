@@ -72,7 +72,7 @@
             </div>
             <div id="user-section" class="flex items-center gap-4">
                  <button id="signupBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition">สมัครสมาชิก</button>
-                 <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition">เข้าสู่ระบบ World ID</button>
+                 <button id="loginBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-full transition cursor-not-allowed" disabled>กำลังโหลด World ID...</button>
             </div>
             <div id="user-info" class="hidden items-center gap-4">
                 <span id="username-display" class="text-white font-semibold"></span>
@@ -388,22 +388,44 @@
         skipButton.addEventListener('click', showMainApp);
         videoContainer.querySelector('video').addEventListener('ended', showMainApp);
         
-        // UPDATED: Login button now triggers World IDKit
-        loginBtn.addEventListener('click', () => {
-            IDKit.open({
-                app_id: "app_57493e6e2fb2153a6a50c98e358b4785",
-                action: "logih",
-                onSuccess: (proof) => {
-                    console.log("IDKit proof received:", proof);
-                    alert("ยืนยันตัวตนสำเร็จ! กำลังเข้าสู่ระบบ...");
-                    handleLogin(proof); 
-                },
-                onError: (error) => {
-                    console.error("IDKit Error:", error);
-                    alert("เกิดข้อผิดพลาดในการยืนยันตัวตน");
+        // --- NEW: Robust World ID Button Setup ---
+        function setupWorldIDButton() {
+            let attempts = 0;
+            const maxAttempts = 50; // Try for 5 seconds
+            const interval = setInterval(() => {
+                if (typeof IDKit !== 'undefined') {
+                    clearInterval(interval);
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'เข้าสู่ระบบ World ID';
+                    loginBtn.classList.remove('bg-gray-500', 'cursor-not-allowed');
+                    loginBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    loginBtn.addEventListener('click', () => {
+                        IDKit.open({
+                            app_id: "app_57493e6e2fb2153a6a50c98e358b4785",
+                            action: "logih",
+                            onSuccess: (proof) => {
+                                console.log("IDKit proof received:", proof);
+                                alert("ยืนยันตัวตนสำเร็จ! กำลังเข้าสู่ระบบ...");
+                                handleLogin(proof);
+                            },
+                            onError: (error) => {
+                                console.error("IDKit Error:", error);
+                                alert("เกิดข้อผิดพลาดในการยืนยันตัวตน");
+                            }
+                        });
+                    });
+                } else {
+                    attempts++;
+                    if (attempts > maxAttempts) {
+                        clearInterval(interval);
+                        loginBtn.textContent = 'World ID ล้มเหลว';
+                        console.error("IDKit failed to load after 5 seconds.");
+                    }
                 }
-            });
-        });
+            }, 100); // Check every 100ms
+        }
+
+        setupWorldIDButton(); // Start the check
 
         logoutBtn.addEventListener('click', handleLogout);
 
