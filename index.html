@@ -10,6 +10,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Worldcoin IDKit SDK -->
+    <script src="https://unpkg.com/@worldcoin/idkit@1.0.0/build/idkit.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
 
@@ -265,7 +267,6 @@
                     return doc.data();
                 } else {
                     console.log("No existing user data, creating new record.");
-                    // Create a default record for a new user
                     const defaultData = { susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
                     await saveData(userId, defaultData);
                     return defaultData;
@@ -346,25 +347,29 @@
             if (state.user.transactions.length > 20) state.user.transactions.pop();
         }
 
-        async function handleLogin() {
+        async function handleLogin(worldIdProof = null) {
             try {
-                const userCredential = await auth.signInAnonymously();
+                let userCredential;
+                if (auth.currentUser) {
+                    userCredential = { user: auth.currentUser };
+                } else {
+                    userCredential = await auth.signInAnonymously();
+                }
                 const userId = userCredential.user.uid;
                 state.isLoggedIn = true;
                 state.user.userId = userId;
                 
-                // For now, we still simulate the World ID part
-                state.user.worldId = "@winai.9407"; 
+                // If a World ID proof is provided, use it. Otherwise, use the simulation.
+                state.user.worldId = worldIdProof ? worldIdProof.nullifier_hash.slice(0, 12) : "@winai.9407"; // Use a slice of the hash for display
 
                 const loadedData = await loadData(userId);
                 if (loadedData) {
-                    // Make sure transactions is an array
                     loadedData.transactions = loadedData.transactions || [];
                     state.user = { ...state.user, ...loadedData };
                 }
                 updateUI();
             } catch (error) {
-                console.error("Error during anonymous login:", error);
+                console.error("Error during login:", error);
             }
         }
 
@@ -382,8 +387,23 @@
         skipButton.addEventListener('click', showMainApp);
         videoContainer.querySelector('video').addEventListener('ended', showMainApp);
         
-        // This button now represents the entire login flow
-        loginBtn.addEventListener('click', handleLogin);
+        // UPDATED: Login button now triggers World IDKit
+        loginBtn.addEventListener('click', () => {
+            IDKit.open({
+                app_id: "app_57493e6e2fb2153a6a50c98e358b4785",
+                action: "logih",
+                onSuccess: (proof) => {
+                    console.log("IDKit proof received:", proof);
+                    alert("ยืนยันตัวตนสำเร็จ! กำลังเข้าสู่ระบบ...");
+                    handleLogin(proof); 
+                },
+                onError: (error) => {
+                    console.error("IDKit Error:", error);
+                    alert("เกิดข้อผิดพลาดในการยืนยันตัวตน");
+                }
+            });
+        });
+
         logoutBtn.addEventListener('click', handleLogout);
 
         inviteBtn.addEventListener('click', () => {
