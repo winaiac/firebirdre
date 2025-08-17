@@ -1,238 +1,152 @@
-<!-- HTML Part -->
-<div id="videoContainer">
-  <video src="https://winaiac.github.io/firebirdre/yasu.mp4" autoplay muted></video>
-  <button id="skipButton">ข้าม</button>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>FirebirdRE</title>
+<style>
+  body, html { margin:0; padding:0; overflow:hidden; background:#000; }
+  canvas { position:absolute; top:0; left:0; }
+  .hidden { display:none; }
+  .background-container { position:relative; width:100%; height:100%; }
+</style>
+</head>
+<body>
+
+<div class="background-container">
+  <img id="bgImage" src="" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.5s;">
+  <canvas id="effectCanvas"></canvas>
 </div>
 
-<div id="mainAppContainer" style="display:none;">
-  <div id="controlPanel"></div>
-  <div id="userSection">
-    <button id="loginBtn" disabled>กำลังโหลด...</button>
-    <button id="logoutBtn">ออกจากระบบ</button>
-  </div>
-  <div id="userInfo">
-    <span id="usernameDisplay"></span>
-    <span id="wldBalanceEl"></span>
-    <span id="susanPointsEl"></span>
-  </div>
-  <input id="memorialText" type="text">
-  <button id="saveMemorialBtn">บันทึกข้อความ</button>
+<!-- UI Elements -->
+<button id="loginBtn">Login World ID</button>
+<button id="logoutBtn">Logout</button>
+<button id="skipButton">Skip Intro</button>
 
-  <button id="inviteBtn">เชิญเพื่อน</button>
-  <button id="portfolioBtnNav">Portfolio</button>
-  <button id="exchangeBtn">แลก WLD</button>
-  <input id="wldAmountInput" type="number">
-  
-  <button id="activityBtnNav">กิจกรรมปลูกป่า</button>
-  <div id="activityModal" style="display:none;">
-    <input id="waterAmountInput" type="number">
-    <button id="startActivityBtn">เริ่มกิจกรรม</button>
-    <button id="endActivityBtn">จบกิจกรรม</button>
-    <div id="activityTimerEl"></div>
-    <div id="activityRewardEl"></div>
-  </div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-  <button id="buyFlowerButton">ซื้อดอกไม้</button>
-  <div id="flowerModal" style="display:none;">
-    <button id="closeFlowerModalBtn">ปิด</button>
-  </div>
+// --- Firebase ---
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MSG_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
 
-  <div id="backgroundButtonsContainer">
-    <button data-bg="eyepp">Eye</button>
-    <button data-bg="pandorap">Pandora</button>
-    <button data-bg="yasup">Yasup</button>
-    <button data-bg="bhuddhap">Buddha</button>
-    <button data-bg="talep">Talep</button>
-    <button data-bg="prasatp">Prasat</button>
-  </div>
-
-  <button id="soundToggleBtn">เปิด/ปิดเสียง</button>
-  <input id="volumeSlider" type="range" min="0" max="1" step="0.01">
-</div>
-
-<canvas id="effectCanvas"></canvas>
-
-<script>
-// --- State Management ---
+// --- State ---
 let state = {
-    isLoggedIn: false,
-    isLightOn: false,
-    isAdmin: false,
-    user: { userId: null, worldId: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" },
-    activity: { isActive: false, startTime: null, pointsCommitted: 0 },
-    sound: { isPlaying: false, volume: 0.5 }
+  isLoggedIn:false,
+  user:{userId:null, worldId:null, susanPoints:500, wldBalance:10, transactions:[], memorial:""},
 };
 
-// --- Firebase Functions ---
-async function saveData(userId, data) {
-    if (!userId) return;
-    try { await db.collection('users').doc(userId).set(data, { merge: true }); }
-    catch (error) { console.error("Error saving data to Firebase:", error); }
+// --- DOM ---
+const effectCanvas = document.getElementById('effectCanvas');
+const ctx = effectCanvas.getContext('2d');
+const bgImage = document.getElementById('bgImage');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const skipButton = document.getElementById('skipButton');
+
+// --- Background Data ---
+const backgroundData = {
+  eyepp:{src:'https://winaiac.github.io/firebirdre/eyepp.png', effect:'stars'},
+  yasup:{src:'https://winaiac.github.io/firebirdre/yasup.png', effect:'petals'}
+};
+
+// --- Canvas / Effects ---
+let animationFrameId = null;
+let activeEffect = null;
+
+function resizeCanvas() { effectCanvas.width = window.innerWidth; effectCanvas.height = window.innerHeight; }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function clearCanvas(){ctx.clearRect(0,0,effectCanvas.width,effectCanvas.height);}
+
+let stars=[];
+function initStars(){stars=Array.from({length:200},()=>({x:Math.random()*effectCanvas.width,y:Math.random()*effectCanvas.height,radius:Math.random()*1.5+0.5,opacity:Math.random()*0.5+0.1,velocity:Math.random()*0.02+0.01}));}
+function drawStars(){clearCanvas();stars.forEach(s=>{ctx.beginPath();ctx.arc(s.x,s.y,s.radius,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${s.opacity})`;ctx.fill();s.opacity+=s.velocity;if(s.opacity>0.8||s.opacity<0.1)s.velocity*=-1;});}
+
+let petals=[];
+function initPetals(){petals=Array.from({length:50},()=>({x:Math.random()*effectCanvas.width,y:Math.random()*effectCanvas.height,size:Math.random()*10+5,opacity:Math.random()*0.7+0.3,rotation:Math.random()*360,rSpeed:Math.random()*0.02-0.01,xVel:Math.random()*0.5-0.25,yVel:Math.random()*1.5+0.5}));}
+function drawPetals(){clearCanvas();petals.forEach(p=>{ctx.beginPath();ctx.fillStyle=`rgba(255,182,193,${p.opacity})`;ctx.ellipse(p.x,p.y,p.size/2,p.size,p.rotation,0,Math.PI*2);ctx.fill();p.x+=p.xVel;p.y+=p.yVel;p.rotation+=p.rSpeed;if(p.y>effectCanvas.height){p.x=Math.random()*effectCanvas.width;p.y=-20;}});}
+
+const effectMap={stars:{init:initStars,draw:drawStars},petals:{init:initPetals,draw:drawPetals}};
+
+function updateBackground(bgKey){
+  if(animationFrameId) cancelAnimationFrame(animationFrameId);
+  clearCanvas();
+  const data = backgroundData[bgKey];
+  if(!data) return;
+  bgImage.style.opacity=0;
+  const img=new Image();
+  img.src=data.src;
+  img.onload=()=>{
+    bgImage.src=data.src;
+    bgImage.style.opacity=1;
+    const effect=effectMap[data.effect];
+    if(effect){effect.init(); activeEffect=effect.draw;} else{activeEffect=null;}
+    animateLoop();
+  };
 }
 
-async function loadData(userId) {
-    if (!userId) return null;
-    try {
-        const doc = await db.collection('users').doc(userId).get();
-        if (doc.exists) return doc.data();
-        const defaultData = { susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
-        await saveData(userId, defaultData);
-        return defaultData;
-    } catch(e){ console.error(e); return null; }
+function animateLoop(){if(activeEffect) activeEffect(); animationFrameId=requestAnimationFrame(animateLoop);}
+
+// --- Firebase Save / Load ---
+async function saveData(userId,data){ if(!userId)return; try{await setDoc(doc(db,"users",userId),data,{merge:true});}catch(e){console.error(e);} }
+async function loadData(userId){ if(!userId)return null; try{ const docSnap=await getDoc(doc(db,"users",userId)); if(docSnap.exists()){return docSnap.data();}else{const defaultData={susanPoints:500,wldBalance:10,transactions:[],memorial:""};await saveData(userId,defaultData);return defaultData;} }catch(e){console.error(e);return null;}}
+
+// --- Login / Logout ---
+async function handleLogin(worldIdProof=null){
+  try{
+    let userCredential;
+    if(auth.currentUser){userCredential={user:auth.currentUser};}else{userCredential=await signInAnonymously(auth);}
+    const userId=userCredential.user.uid;
+    state.isLoggedIn=true;
+    state.user.userId=userId;
+    state.user.worldId=worldIdProof?worldIdProof.nullifier_hash.slice(0,12):"@winai.9407";
+    const loadedData=await loadData(userId);
+    if(loadedData){loadedData.transactions=loadedData.transactions||[]; state.user={...state.user,...loadedData};}
+    alert("Login สำเร็จ: "+state.user.worldId);
+  }catch(e){console.error(e);}
+}
+async function handleLogout(){
+  await saveData(state.user.userId,state.user);
+  await signOut(auth);
+  state.isLoggedIn=false;
+  state.user={userId:null,worldId:null,susanPoints:500,wldBalance:10,transactions:[],memorial:""};
+  alert("Logout สำเร็จ");
 }
 
-// --- UI & App Flow ---
-function updateUI() {
-    userSection.classList.toggle('hidden', state.isLoggedIn);
-    userInfo.classList.toggle('hidden', !state.isLoggedIn);
-    usernameDisplay.textContent = state.user.worldId || state.user.userId || "";
-    wldBalanceEl.textContent = state.user.wldBalance.toFixed(2);
-    susanPointsEl.textContent = state.user.susanPoints;
-    memorialText.value = state.user.memorial;
+// --- World ID Button ---
+function setupWorldIDButton(){
+  let attempts=0;
+  const maxAttempts=50;
+  const interval=setInterval(()=>{
+    if(typeof IDKit!=="undefined"){clearInterval(interval);
+      loginBtn.disabled=false; loginBtn.textContent='เข้าสู่ระบบ World ID';
+      loginBtn.addEventListener('click',()=>{ IDKit.open({
+        app_id:"app_57493e6e2fb2153a6a50c98e358b4785",
+        action:"logih",
+        onSuccess:(proof)=>{console.log(proof); alert("ยืนยันตัวตนสำเร็จ!"); handleLogin(proof); },
+        onError:(err)=>{console.error(err); alert("IDKit Error");}
+      });});
+    }else{attempts++; if(attempts>maxAttempts){clearInterval(interval);loginBtn.textContent='World ID ล้มเหลว';}}
+  },100);
 }
 
-function addTransaction(desc, amount) {
-    state.user.transactions.unshift({ desc, amount, date: new Date().toISOString() });
-    if (state.user.transactions.length > 20) state.user.transactions.pop();
-}
-
-// --- World ID Integration ---
-function setupWorldIDButton() {
-    let attempts = 0;
-    const interval = setInterval(() => {
-        if (typeof IDKit !== 'undefined') {
-            clearInterval(interval);
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'เข้าสู่ระบบ World ID';
-            loginBtn.addEventListener('click', () => {
-                IDKit.open({
-                    app_id: "app_57493e6e2fb2153a6a50c98e358b4785",
-                    action: "logih",
-                    onSuccess: proof => handleLogin(proof),
-                    onError: err => { console.error(err); alert("เกิดข้อผิดพลาด World ID"); }
-                });
-            });
-        } else { attempts++; if (attempts>50){ clearInterval(interval); loginBtn.textContent='World ID ล้มเหลว'; } }
-    },100);
-}
-
-async function handleLogin(worldIdProof=null) {
-    try {
-        const userCredential = auth.currentUser ? {user:auth.currentUser} : await auth.signInAnonymously();
-        const userId = userCredential.user.uid;
-        state.isLoggedIn = true;
-        state.user.userId = userId;
-        state.user.worldId = worldIdProof ? worldIdProof.nullifier_hash.slice(0,12) : "@winai.9407";
-        const loadedData = await loadData(userId);
-        if(loadedData){ loadedData.transactions=loadedData.transactions||[]; state.user={...state.user,...loadedData}; }
-        updateUI();
-    } catch(e){ console.error(e); }
-}
-
-async function handleLogout() {
-    await saveData(state.user.userId, state.user);
-    await auth.signOut();
-    state.isLoggedIn=false;
-    state.user={ userId:null, worldId:null, susanPoints:500, wldBalance:10, transactions:[], memorial:"" };
-    updateUI();
-}
-
-// --- Event Listeners ---
-skipButton.addEventListener('click', ()=>{videoContainer.style.display='none'; mainAppContainer.style.display='block';});
-window.addEventListener('click', ()=>{controlPanel.classList.add('visible'); setTimeout(()=>controlPanel.classList.remove('visible'),10000);});
-window.addEventListener('mousemove', ()=>{controlPanel.classList.add('visible'); setTimeout(()=>controlPanel.classList.remove('visible'),10000);});
-
-logoutBtn.addEventListener('click', handleLogout);
 setupWorldIDButton();
 
-// --- Invite Button ---
-inviteBtn.addEventListener('click', ()=>{
-    if(!state.user.worldId) return;
-    const inviteLink=`https://winaiac.github.io/firebirdre/?ref=${state.user.worldId}`;
-    navigator.clipboard.writeText(`เข้าร่วม SusanAI Online: ${inviteLink}`);
-    alert('คัดลอกลิงก์เชิญแล้ว!');
-});
-
-// --- Exchange ---
-exchangeBtn.addEventListener('click', ()=>{
-    const wldAmount=parseFloat(document.getElementById('wldAmountInput').value);
-    if(isNaN(wldAmount)||wldAmount<=0||wldAmount>state.user.wldBalance){ alert('จำนวน WLD ไม่ถูกต้อง'); return; }
-    const pointsToAdd=wldAmount*50;
-    state.user.wldBalance-=wldAmount;
-    state.user.susanPoints+=pointsToAdd;
-    addTransaction(`Exchange ${wldAmount} WLD`, pointsToAdd);
-    updateUI();
-    saveData(state.user.userId,{wldBalance:state.user.wldBalance,susanPoints:state.user.susanPoints,transactions:state.user.transactions});
-});
-
-// --- Memorial ---
-saveMemorialBtn.addEventListener('click', ()=>{
-    state.user.memorial=memorialText.value;
-    saveData(state.user.userId,{memorial:state.user.memorial});
-    alert('บันทึกข้อความแล้ว');
-});
-
-// --- Activity ---
-startActivityBtn.addEventListener('click', ()=>{
-    const amount=parseInt(document.getElementById('waterAmountInput').value);
-    if(isNaN(amount)||amount<=0||amount>state.user.susanPoints){ alert('คะแนนไม่ถูกต้อง'); return; }
-    state.user.susanPoints-=amount;
-    state.activity={isActive:true,startTime:Date.now(),pointsCommitted:amount};
-    addTransaction('เข้าร่วมกิจกรรมปลูกป่า',-amount);
-    updateUI();
-    saveData(state.user.userId,{susanPoints:state.user.susanPoints,transactions:state.user.transactions});
-    activityStartDiv.classList.add('hidden');
-    activityProgressDiv.classList.remove('hidden');
-    activityPointsEl.textContent=amount;
-    activityInterval=setInterval(updateActivity,1000);
-});
-
-endActivityBtn.addEventListener('click', ()=>{
-    clearInterval(activityInterval);
-    const elapsed=Math.floor((Date.now()-state.activity.startTime)/1000);
-    const totalRewardPool=60000000,totalWater=12000000;
-    const userShare=state.activity.pointsCommitted/totalWater;
-    const rewardPerSecond=totalRewardPool/(24*3600);
-    const finalReward=userShare*rewardPerSecond*elapsed;
-    state.user.susanPoints+=finalReward;
-    addTransaction('รับรางวัลกิจกรรม',finalReward);
-    alert(`กิจกรรมสิ้นสุด! คุณได้รับ ${finalReward.toFixed(2)} คะแนน`);
-    state.activity={isActive:false,startTime:null,pointsCommitted:0};
-    activityStartDiv.classList.remove('hidden');
-    activityProgressDiv.classList.add('hidden');
-    updateUI();
-    saveData(state.user.userId,{susanPoints:state.user.susanPoints,transactions:state.user.transactions});
-});
-
-// --- Flowers ---
-buyFlowerButton.addEventListener('click', ()=>{
-    if(state.user.susanPoints>=10){
-        state.user.susanPoints-=10;
-        addTransaction('ซื้อดอกไม้',-10);
-        updateUI();
-        saveData(state.user.userId,{susanPoints:state.user.susanPoints,transactions:state.user.transactions});
-        flowerModal.style.display='flex';
-    }else alert('คะแนน Susan ไม่เพียงพอ!');
-});
-closeFlowerModalBtn.addEventListener('click',()=>{flowerModal.style.display='none';});
-
-// --- Background Buttons ---
-backgroundButtonsContainer.addEventListener('click',(e)=>{
-    if(e.target.tagName==='BUTTON'){
-        const bgKey=e.target.dataset.bg;
-        if(bgKey) updateBackground(bgKey);
-    }
-});
-
-// --- Sound Controls ---
-soundToggleBtn.addEventListener('click', ()=>{
-    state.sound.isPlaying=!state.sound.isPlaying;
-    if(state.sound.isPlaying){ backgroundAudio.play(); soundOnIcon.classList.remove('hidden'); soundOffIcon.classList.add('hidden'); }
-    else{ backgroundAudio.pause(); soundOnIcon.classList.add('hidden'); soundOffIcon.classList.remove('hidden'); }
-});
-volumeSlider.addEventListener('input',(e)=>{ state.sound.volume=e.target.value; backgroundAudio.volume=state.sound.volume; });
-
-// --- Initial UI Update ---
-updateUI();
+// --- Skip Intro ---
+skipButton.addEventListener('click',()=>{updateBackground('eyepp');});
 
 </script>
+</body>
+</html>
