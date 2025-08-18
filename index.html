@@ -4,11 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- NEW: Content Security Policy to allow external scripts -->
     <meta http-equiv="Content-Security-Policy" content="
-        script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://unpkg.com https://verify.worldcoin.org;
-        connect-src 'self' wss://*.firebaseio.com https://susanonline-9ccbb.firebaseio.com https://verify.worldcoin.org;
-        frame-src 'self' https://verify.worldcoin.org;
+        script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://apis.google.com https://unpkg.com https://verify.worldcoin.org;
+        connect-src 'self' wss://*.firebaseio.com https://susanonline-9ccbb.firebaseio.com https://www.googleapis.com https://firebaseauth.googleapis.com https://verify.worldcoin.org;
+        frame-src 'self' https://susanonline-9ccbb.firebaseapp.com https://verify.worldcoin.org;
         img-src 'self' data: https://*;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src 'self' https://fonts.gstatic.com;
@@ -20,7 +19,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <!-- UPDATED: Correct Worldcoin IDKit SDK URL -->
+    <!-- Worldcoin IDKit SDK (Standalone Version for Vanilla JS) -->
     <script src="https://unpkg.com/@worldcoin/idkit-standalone@1/dist/idkit.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
@@ -43,11 +42,52 @@
         #light-bulb { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(255, 255, 220, 0.25), transparent 60%); opacity: 0; transition: opacity 0.5s ease; pointer-events: none; z-index: 5; }
         #light-bulb.on { opacity: 1; }
         
-        /* --- Styles for Portfolio, Chat, etc. --- */
         .collapsible-panel { position: fixed; top: 80px; right: -400px; width: 400px; height: calc(100vh - 100px); background-color: rgba(10, 10, 20, 0.8); backdrop-filter: blur(10px); border-left: 1px solid rgba(255,255,255,0.2); transition: right 0.5s ease; z-index: 100; display: flex; flex-direction: column; border-radius: 15px 0 0 15px; }
         .collapsible-panel.open { right: 0; }
         .panel-toggle-button { position: absolute; top: 50%; left: -30px; transform: translateY(-50%); width: 30px; height: 100px; background-color: rgba(10, 10, 20, 0.8); border-radius: 10px 0 0 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-left: 1px solid rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 1px solid rgba(255,255,255,0.2); }
         .sound-console { position: fixed; bottom: 1rem; left: 1rem; z-index: 25; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px); padding: 0.5rem 1rem; border-radius: 9999px; display: flex; align-items: center; gap: 0.75rem; }
+
+        #prizePoolDisplay {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #f0c435, #ff8c00);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
+            z-index: 15;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4); }
+            50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 6px 20px rgba(255, 165, 0, 0.6); }
+            100% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4); }
+        }
+
+        .admin-input {
+            background-color: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 8px;
+            width: 100%;
+            margin-top: 4px;
+        }
+        
+        .activity-button-pulse {
+            animation: activity-pulse 2s infinite;
+        }
+
+        @keyframes activity-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+        }
     </style>
 </head>
 
@@ -76,8 +116,8 @@
                 <div id="main-nav-links" class="flex items-center space-x-2 md:space-x-4">
                     <a href="#" id="homeLink" class="text-white hover:text-yellow-400">หน้าหลัก</a>
                     <a href="#" id="portfolioBtnNav" class="text-white hover:text-yellow-400 hidden member-only">Portfolio</a>
-                    <a href="#" id="activityBtnNav" class="text-white hover:text-yellow-400 hidden member-only">กิจกรรม</a>
-                    <a href="#" id="ebookBtnNav" class="text-white hover:text-yellow-400 hidden member-only">E-Book</a>
+                    <a href="#" id="activityBtnNav" class="text-white hover:text-yellow-400 hidden member-only bg-green-500/50 rounded-full px-3 py-1 activity-button-pulse">กิจกรรม</a>
+                    <a href="#" id="ebookBtnNav" class="text-white hover:text-yellow-400">E-Book</a>
                     <a href="#" id="adminPanelBtn" class="text-yellow-300 hover:text-yellow-500 hidden">แผงควบคุมแอดมิน</a>
                 </div>
             </div>
@@ -92,14 +132,15 @@
             </div>
         </nav>
         
-        <div id="prizePoolDisplay" class="hidden member-only">
+        <div id="prizePoolDisplay">
             ธนาคารกลาง: <span id="prizePoolAmount">0</span> คะแนน
         </div>
 
         <main id="content-area" class="relative w-full h-full">
             <section id="home-content" class="w-full h-full flex flex-col items-center justify-center text-center p-8 opacity-0 transition-opacity duration-1000">
                  <div class="bg-black/40 p-8 rounded-2xl shadow-xl max-w-2xl w-full">
-                    <h2 class="text-3xl font-bold mb-4 text-white">ยินดีต้อนรับสู่ SusanAI</h2>
+                    <h2 id="welcomeTitle" class="text-3xl font-bold mb-4 text-white">ยินดีต้อนรับสู่ SusanAI</h2>
+                    <p id="lastLoginText" class="text-gray-300"></p>
                  </div>
             </section>
         </main>
@@ -117,6 +158,8 @@
                 <button data-bg="talep" class="text-white px-4 py-2 rounded-full transition hidden member-only">Sea</button>
                 <button data-bg="prasatp" class="text-white px-4 py-2 rounded-full transition hidden member-only">Castle</button>
             </div>
+            <!-- NEW: Contact Admin Button -->
+            <button id="contactAdminBtn" class="text-white text-sm underline opacity-70 hover:opacity-100 transition">ติดต่อผู้พัฒนา</button>
         </div>
 
         <div id="portfolioPanel" class="collapsible-panel member-only hidden">
@@ -182,11 +225,9 @@
             </div>
         </div>
         
-        <!-- NEW: Admin Panel Modal -->
         <div id="adminModal" class="modal-overlay">
             <div class="modal-box w-full max-w-lg text-left">
                 <h2 class="text-2xl font-bold mb-6 text-center">แผงควบคุมแอดมิน</h2>
-                <!-- Game Settings -->
                 <div class="space-y-4">
                     <div>
                         <label for="prizePoolInput">ตั้งค่าธนาคารกลาง (คะแนน)</label>
@@ -196,10 +237,13 @@
                         <label for="flowerPriceInput">ตั้งราคาดอกไม้ (คะแนน)</label>
                         <input type="number" id="flowerPriceInput" class="admin-input">
                     </div>
+                    <div>
+                        <label for="profitCapInput">เงื่อนไขกำไรสูงสุด (%)</label>
+                        <input type="number" id="profitCapInput" class="admin-input" placeholder="เช่น 20">
+                    </div>
                     <button id="saveSettingsBtn" class="w-full mt-2 bg-green-600 hover:bg-green-700 p-2 rounded">บันทึกการตั้งค่า</button>
                 </div>
                 <hr class="my-6 border-gray-600">
-                <!-- Add Credits -->
                 <div class="space-y-4">
                      <h3 class="text-xl font-bold">เติมเครดิตให้ผู้ใช้</h3>
                     <div>
@@ -219,7 +263,6 @@
     </div>
 
     <script>
-    // Changed from DOMContentLoaded to window.onload to ensure all scripts are loaded
     window.onload = () => {
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -250,7 +293,6 @@
         const backgroundButtonsContainer = document.getElementById('backgroundButtons');
         const loginBtn = document.getElementById('loginBtn');
         const googleLoginBtn = document.getElementById('googleLoginBtn'); 
-        const signupBtn = document.getElementById('signupBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         const userSection = document.getElementById('user-section');
         const userInfo = document.getElementById('user-info');
@@ -286,6 +328,9 @@
         const flowerPriceText = document.getElementById('flowerPriceText');
         const prizePoolDisplay = document.getElementById('prizePoolDisplay');
         const prizePoolAmountEl = document.getElementById('prizePoolAmount');
+        const welcomeTitle = document.getElementById('welcomeTitle');
+        const lastLoginText = document.getElementById('lastLoginText');
+        const contactAdminBtn = document.getElementById('contactAdminBtn');
         
         // Admin Elements
         const adminPanelBtn = document.getElementById('adminPanelBtn');
@@ -293,6 +338,7 @@
         const closeAdminModalBtn = document.getElementById('closeAdminModalBtn');
         const prizePoolInput = document.getElementById('prizePoolInput');
         const flowerPriceInput = document.getElementById('flowerPriceInput');
+        const profitCapInput = document.getElementById('profitCapInput');
         const saveSettingsBtn = document.getElementById('saveSettingsBtn');
         const creditUserIdInput = document.getElementById('creditUserIdInput');
         const creditAmountInput = document.getElementById('creditAmountInput');
@@ -307,16 +353,15 @@
             isLoggedIn: false,
             isLightOn: false,
             isAdmin: false,
-            user: { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" },
+            user: { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "", lastLogin: null },
             activity: { isActive: false, startTime: null, pointsCommitted: 0 },
             sound: { isPlaying: false, volume: 0.5 },
-            gameSettings: { prizePool: 6000, flowerPrice: 10 }
+            gameSettings: { prizePool: 6000, flowerPrice: 10, profitCap: 20 }
         };
 
         // --- Firebase Functions ---
         async function saveData(collection, docId, data) {
             if (!docId) return;
-            console.log(`Saving to Firebase/${collection}/${docId}`, data);
             try {
                 await db.collection(collection).doc(docId).set(data, { merge: true });
             } catch (error) {
@@ -326,7 +371,6 @@
 
         async function loadData(collection, docId) {
             if (!docId) return null;
-            console.log(`Loading from Firebase/${collection}/${docId}`);
             try {
                 const docRef = db.collection(collection).doc(docId);
                 const doc = await docRef.get();
@@ -417,11 +461,24 @@
         async function handleLogin(loginResult = null) {
             try {
                 const userId = loginResult.user.uid;
+                const userEmail = loginResult.user.email;
+                
+                const loadedData = await loadData('users', userId);
+                
+                if (loadedData && loadedData.lastLogin) {
+                    const lastLoginDate = new Date(loadedData.lastLogin.seconds * 1000);
+                    lastLoginText.textContent = `คุณเข้าสู่ระบบครั้งล่าสุดเมื่อ: ${lastLoginDate.toLocaleString('th-TH')}`;
+                } else {
+                    lastLoginText.textContent = "นี่คือการเข้าสู่ระบบครั้งแรกของคุณ ยินดีต้อนรับ!";
+                }
+                
+                await saveData('users', userId, { lastLogin: firebase.firestore.FieldValue.serverTimestamp() });
+
                 state.isLoggedIn = true;
                 state.user.userId = userId;
                 
                 // Check if admin
-                if (loginResult.user.email === 'winayo@gmail.com') {
+                if (userEmail === 'winayo@gmail.com') {
                     state.isAdmin = true;
                 }
                 
@@ -434,7 +491,6 @@
                     state.user.worldId = "@winai.9407"; 
                 }
 
-                const loadedData = await loadData('users', userId);
                 if (loadedData) {
                     loadedData.transactions = loadedData.transactions || [];
                     state.user = { ...state.user, ...loadedData };
@@ -446,11 +502,12 @@
         }
 
         async function handleLogout() {
-            await saveData('users', state.user.userId, state.user);
+            await saveData('users', state.user.userId, { lastLogout: firebase.firestore.FieldValue.serverTimestamp() });
             await auth.signOut();
             state.isLoggedIn = false;
             state.isAdmin = false;
             state.user = { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" }; // Reset state
+            lastLoginText.textContent = "นี่คือแพลตฟอร์ม Full Stack ที่คุณสามารถปรับแต่งได้ตามต้องการ";
             updateUI();
         }
 
@@ -511,6 +568,13 @@
         startActivityBtn.addEventListener('click', () => {
             const amount = parseInt(document.getElementById('waterAmountInput').value);
             if (isNaN(amount) || amount <= 0 || amount > state.user.susanPoints) { alert('คะแนนไม่ถูกต้อง'); return; }
+            
+            const maxInvestment = state.gameSettings.prizePool * (state.gameSettings.profitCap / 100);
+            if (amount > maxInvestment) {
+                alert(`คุณสามารถใช้คะแนนได้ไม่เกิน ${maxInvestment.toLocaleString()} คะแนน (${state.gameSettings.profitCap}%)`);
+                return;
+            }
+
             state.user.susanPoints -= amount;
             state.activity = { isActive: true, startTime: Date.now(), pointsCommitted: amount };
             addTransaction('เข้าร่วมกิจกรรมปลูกป่า', -amount);
@@ -600,6 +664,7 @@
             e.preventDefault();
             prizePoolInput.value = state.gameSettings.prizePool;
             flowerPriceInput.value = state.gameSettings.flowerPrice;
+            profitCapInput.value = state.gameSettings.profitCap;
             adminModal.style.display = 'flex';
         });
 
@@ -610,17 +675,18 @@
         saveSettingsBtn.addEventListener('click', async () => {
             const newPrizePool = parseInt(prizePoolInput.value);
             const newFlowerPrice = parseInt(flowerPriceInput.value);
+            const newProfitCap = parseInt(profitCapInput.value);
 
-            if(isNaN(newPrizePool) || isNaN(newFlowerPrice)) {
+            if(isNaN(newPrizePool) || isNaN(newFlowerPrice) || isNaN(newProfitCap)) {
                 alert("กรุณาใส่ค่าเป็นตัวเลขเท่านั้น");
                 return;
             }
-
-            state.gameSettings.prizePool = newPrizePool;
-            state.gameSettings.flowerPrice = newFlowerPrice;
             
-            await saveData('settings', 'gameConfig', state.gameSettings);
-            updateUI();
+            await saveData('settings', 'gameConfig', {
+                prizePool: newPrizePool,
+                flowerPrice: newFlowerPrice,
+                profitCap: newProfitCap
+            });
             alert("บันทึกการตั้งค่าเรียบร้อยแล้ว");
         });
 
@@ -646,6 +712,9 @@
             creditAmountInput.value = '';
             alert(`เติมเครดิต ${amount} คะแนนให้ User ID: ${targetUserId} สำเร็จ!`);
         });
+        
+        ebookBtnNav.addEventListener('click', () => alert('E-Book Store จะเปิดให้บริการเร็วๆ นี้!'));
+        contactAdminBtn.addEventListener('click', () => alert('ผู้พัฒนา: Winai Phanarkat\nLine ID: 0926533228'));
 
         // --- Initial Load ---
         function initializeApp() {
@@ -654,17 +723,17 @@
                 if (doc.exists) {
                     console.log("Game settings updated:", doc.data());
                     state.gameSettings = doc.data();
-                    updateUI();
                 } else {
                     // If settings don't exist in DB, create them with default state values
                     saveData('settings', 'gameConfig', state.gameSettings);
                 }
+                updateUI();
             });
 
             // Check for existing user session
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
-                    await handleLogin({ user });
+                    await handleLogin({ user, providerData: user.providerData });
                 } else {
                     updateUI();
                 }
