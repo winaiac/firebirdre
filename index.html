@@ -42,11 +42,43 @@
         #light-bulb { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(255, 255, 220, 0.25), transparent 60%); opacity: 0; transition: opacity 0.5s ease; pointer-events: none; z-index: 5; }
         #light-bulb.on { opacity: 1; }
         
-        /* --- Styles for Portfolio, Chat, etc. --- */
         .collapsible-panel { position: fixed; top: 80px; right: -400px; width: 400px; height: calc(100vh - 100px); background-color: rgba(10, 10, 20, 0.8); backdrop-filter: blur(10px); border-left: 1px solid rgba(255,255,255,0.2); transition: right 0.5s ease; z-index: 100; display: flex; flex-direction: column; border-radius: 15px 0 0 15px; }
         .collapsible-panel.open { right: 0; }
         .panel-toggle-button { position: absolute; top: 50%; left: -30px; transform: translateY(-50%); width: 30px; height: 100px; background-color: rgba(10, 10, 20, 0.8); border-radius: 10px 0 0 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-left: 1px solid rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 1px solid rgba(255,255,255,0.2); }
         .sound-console { position: fixed; bottom: 1rem; left: 1rem; z-index: 25; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(5px); padding: 0.5rem 1rem; border-radius: 9999px; display: flex; align-items: center; gap: 0.75rem; }
+
+        /* --- NEW STYLES for Admin & Prize Pool --- */
+        #prizePoolDisplay {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #f0c435, #ff8c00);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
+            z-index: 15;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4); }
+            50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 6px 20px rgba(255, 165, 0, 0.6); }
+            100% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4); }
+        }
+
+        .admin-input {
+            background-color: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 8px;
+            width: 100%;
+            margin-top: 4px;
+        }
     </style>
 </head>
 
@@ -72,16 +104,16 @@
         <nav class="glass-menu fixed top-0 left-0 w-full z-20 p-4 flex justify-between items-center px-8">
             <div class="flex items-center space-x-4">
                 <h1 class="text-2xl font-bold text-white">SusanAI</h1>
-                <!-- FIXED: Removed responsive hiding classes -->
                 <div id="main-nav-links" class="flex items-center space-x-2 md:space-x-4">
                     <a href="#" id="homeLink" class="text-white hover:text-yellow-400">หน้าหลัก</a>
                     <a href="#" id="portfolioBtnNav" class="text-white hover:text-yellow-400 hidden member-only">Portfolio</a>
                     <a href="#" id="activityBtnNav" class="text-white hover:text-yellow-400 hidden member-only">กิจกรรม</a>
                     <a href="#" id="ebookBtnNav" class="text-white hover:text-yellow-400 hidden member-only">E-Book</a>
+                    <!-- NEW: Admin Panel Button -->
+                    <a href="#" id="adminPanelBtn" class="text-yellow-300 hover:text-yellow-500 hidden">แผงควบคุมแอดมิน</a>
                 </div>
             </div>
             <div id="user-section" class="flex items-center gap-4">
-                 <!-- NEW: Google Login Button -->
                  <button id="googleLoginBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition">เข้าสู่ระบบด้วย Google</button>
                  <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition">เข้าสู่ระบบ World ID (จำลอง)</button>
             </div>
@@ -91,6 +123,11 @@
                 <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition">ออกจากระบบ</button>
             </div>
         </nav>
+        
+        <!-- NEW: Prize Pool Display -->
+        <div id="prizePoolDisplay" class="hidden member-only">
+            ธนาคารกลาง: <span id="prizePoolAmount">0</span> คะแนน
+        </div>
 
         <main id="content-area" class="relative w-full h-full">
             <section id="home-content" class="w-full h-full flex flex-col items-center justify-center text-center p-8 opacity-0 transition-opacity duration-1000">
@@ -173,11 +210,45 @@
         <div id="flowerModal" class="modal-overlay">
             <div class="modal-box">
                 <h2 class="text-2xl font-bold mb-4">ขอบคุณสำหรับการซื้อดอกไม้!</h2>
-                <p class="mb-6">ดอกไม้จะคงอยู่ 7 วัน คะแนน Susan ของคุณถูกใช้ไป 10 คะแนน</p>
+                <p id="flowerPriceText" class="mb-6"></p>
                 <button id="closeFlowerModalBtn" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 p-2 rounded">ตกลง</button>
             </div>
         </div>
         
+        <!-- NEW: Admin Panel Modal -->
+        <div id="adminModal" class="modal-overlay">
+            <div class="modal-box w-full max-w-lg text-left">
+                <h2 class="text-2xl font-bold mb-6 text-center">แผงควบคุมแอดมิน</h2>
+                <!-- Game Settings -->
+                <div class="space-y-4">
+                    <div>
+                        <label for="prizePoolInput">ตั้งค่าธนาคารกลาง (คะแนน)</label>
+                        <input type="number" id="prizePoolInput" class="admin-input">
+                    </div>
+                    <div>
+                        <label for="flowerPriceInput">ตั้งราคาดอกไม้ (คะแนน)</label>
+                        <input type="number" id="flowerPriceInput" class="admin-input">
+                    </div>
+                    <button id="saveSettingsBtn" class="w-full mt-2 bg-green-600 hover:bg-green-700 p-2 rounded">บันทึกการตั้งค่า</button>
+                </div>
+                <hr class="my-6 border-gray-600">
+                <!-- Add Credits -->
+                <div class="space-y-4">
+                     <h3 class="text-xl font-bold">เติมเครดิตให้ผู้ใช้</h3>
+                    <div>
+                        <label for="creditUserIdInput">User ID</label>
+                        <input type="text" id="creditUserIdInput" class="admin-input" placeholder="ใส่ User ID ของผู้ใช้">
+                    </div>
+                    <div>
+                        <label for="creditAmountInput">จำนวนคะแนน</label>
+                        <input type="number" id="creditAmountInput" class="admin-input" placeholder="ใส่จำนวนคะแนนที่ต้องการเพิ่ม">
+                    </div>
+                    <button id="addCreditBtn" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 p-2 rounded">เติมเครดิต</button>
+                </div>
+                <button id="closeAdminModalBtn" class="w-full mt-8 bg-gray-700 hover:bg-gray-800 p-2 rounded">ปิด</button>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -211,7 +282,7 @@
         const lightBulb = document.getElementById('light-bulb');
         const backgroundButtonsContainer = document.getElementById('backgroundButtons');
         const loginBtn = document.getElementById('loginBtn');
-        const googleLoginBtn = document.getElementById('googleLoginBtn'); // NEW
+        const googleLoginBtn = document.getElementById('googleLoginBtn'); 
         const signupBtn = document.getElementById('signupBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         const userSection = document.getElementById('user-section');
@@ -245,6 +316,21 @@
         const buyFlowerButton = document.getElementById('buyFlowerButton');
         const flowerModal = document.getElementById('flowerModal');
         const closeFlowerModalBtn = document.getElementById('closeFlowerModalBtn');
+        const flowerPriceText = document.getElementById('flowerPriceText');
+        const prizePoolDisplay = document.getElementById('prizePoolDisplay');
+        const prizePoolAmountEl = document.getElementById('prizePoolAmount');
+        
+        // Admin Elements
+        const adminPanelBtn = document.getElementById('adminPanelBtn');
+        const adminModal = document.getElementById('adminModal');
+        const closeAdminModalBtn = document.getElementById('closeAdminModalBtn');
+        const prizePoolInput = document.getElementById('prizePoolInput');
+        const flowerPriceInput = document.getElementById('flowerPriceInput');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const creditUserIdInput = document.getElementById('creditUserIdInput');
+        const creditAmountInput = document.getElementById('creditAmountInput');
+        const addCreditBtn = document.getElementById('addCreditBtn');
+
 
         const ctx = effectCanvas.getContext('2d');
         let animationFrameId = null, activeEffect = null, controlPanelTimeout, activityInterval;
@@ -256,34 +342,31 @@
             isAdmin: false,
             user: { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" },
             activity: { isActive: false, startTime: null, pointsCommitted: 0 },
-            sound: { isPlaying: false, volume: 0.5 }
+            sound: { isPlaying: false, volume: 0.5 },
+            gameSettings: { prizePool: 60000000, flowerPrice: 10 }
         };
 
         // --- Firebase Functions ---
-        async function saveData(userId, data) {
-            if (!userId) return;
-            console.log(`Saving to Firebase for user: ${userId}`, data);
+        async function saveData(collection, docId, data) {
+            if (!docId) return;
+            console.log(`Saving to Firebase/${collection}/${docId}`, data);
             try {
-                await db.collection('users').doc(userId).set(data, { merge: true });
+                await db.collection(collection).doc(docId).set(data, { merge: true });
             } catch (error) {
                 console.error("Error saving data to Firebase: ", error);
             }
         }
 
-        async function loadData(userId) {
-            if (!userId) return null;
-            console.log(`Loading from Firebase for user: ${userId}`);
+        async function loadData(collection, docId) {
+            if (!docId) return null;
+            console.log(`Loading from Firebase/${collection}/${docId}`);
             try {
-                const docRef = db.collection('users').doc(userId);
+                const docRef = db.collection(collection).doc(docId);
                 const doc = await docRef.get();
                 if (doc.exists) {
                     return doc.data();
-                } else {
-                    console.log("No existing user data, creating new record.");
-                    const defaultData = { susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
-                    await saveData(userId, defaultData);
-                    return defaultData;
                 }
+                return null;
             } catch (error) {
                 console.error("Error loading data from Firebase: ", error);
                 return null;
@@ -348,7 +431,11 @@
             userSection.classList.toggle('hidden', state.isLoggedIn);
             userInfo.classList.toggle('hidden', !state.isLoggedIn);
             document.querySelectorAll('.member-only').forEach(el => el.classList.toggle('hidden', !state.isLoggedIn));
-            if (state.isLoggedIn) { usernameDisplay.textContent = state.user.displayName || state.user.worldId || state.user.userId; }
+            adminPanelBtn.classList.toggle('hidden', !state.isAdmin);
+            if (state.isLoggedIn) { 
+                usernameDisplay.textContent = state.user.displayName || state.user.worldId || state.user.userId;
+                prizePoolAmountEl.textContent = state.gameSettings.prizePool.toLocaleString();
+            }
             wldBalanceEl.textContent = state.user.wldBalance.toFixed(2);
             susanPointsEl.textContent = state.user.susanPoints;
             memorialText.value = state.user.memorial;
@@ -366,16 +453,21 @@
                 state.isLoggedIn = true;
                 state.user.userId = userId;
                 
+                // Check if admin
+                if (loginResult.user.email === 'winayo@gmail.com') {
+                    state.isAdmin = true;
+                }
+                
                 // Check login type
                 if (loginResult.providerData && loginResult.providerData[0].providerId === 'google.com') {
                     state.user.displayName = loginResult.user.displayName;
                     state.user.worldId = null; // Clear worldId if logging in with Google
                 } else { // World ID or Anonymous
                     state.user.displayName = null;
-                    state.user.worldId = loginResult.worldIdProof ? loginResult.worldIdProof.nullifier_hash.slice(0, 12) : "@winai.9407"; 
+                    state.user.worldId = "@winai.9407"; 
                 }
 
-                const loadedData = await loadData(userId);
+                const loadedData = await loadData('users', userId);
                 if (loadedData) {
                     loadedData.transactions = loadedData.transactions || [];
                     state.user = { ...state.user, ...loadedData };
@@ -387,9 +479,10 @@
         }
 
         async function handleLogout() {
-            await saveData(state.user.userId, state.user);
+            await saveData('users', state.user.userId, state.user);
             await auth.signOut();
             state.isLoggedIn = false;
+            state.isAdmin = false;
             state.user = { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" }; // Reset state
             updateUI();
         }
@@ -400,45 +493,12 @@
         skipButton.addEventListener('click', showMainApp);
         videoContainer.querySelector('video').addEventListener('ended', showMainApp);
         
-        // --- NEW: Robust World ID Button Setup ---
-        function setupWorldIDButton() {
-            let attempts = 0;
-            const maxAttempts = 50; // Try for 5 seconds
-            const interval = setInterval(() => {
-                if (typeof IDKit !== 'undefined') {
-                    clearInterval(interval);
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'เข้าสู่ระบบ World ID';
-                    loginBtn.classList.remove('bg-gray-500', 'cursor-not-allowed');
-                    loginBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    loginBtn.addEventListener('click', () => {
-                        IDKit.open({
-                            app_id: "app_57493e6e2fb2153a6a50c98e358b4785",
-                            action: "logih",
-                            onSuccess: (proof) => {
-                                console.log("IDKit proof received:", proof);
-                                alert("ยืนยันตัวตนสำเร็จ! กำลังเข้าสู่ระบบ...");
-                                handleLogin({ user: { uid: proof.nullifier_hash }, worldIdProof: proof });
-                            },
-                            onError: (error) => {
-                                console.error("IDKit Error:", error);
-                                alert("เกิดข้อผิดพลาดในการยืนยันตัวตน");
-                            }
-                        });
-                    });
-                } else {
-                    attempts++;
-                    if (attempts > maxAttempts) {
-                        clearInterval(interval);
-                        loginBtn.textContent = 'World ID ล้มเหลว';
-                        console.error("IDKit failed to load after 5 seconds.");
-                    }
-                }
-            }, 100); // Check every 100ms
-        }
-
-        setupWorldIDButton(); // Start the check
-
+        // --- UPDATED: World ID Login (Simulation) ---
+        loginBtn.addEventListener('click', () => {
+            alert("นี่คือการจำลองการเข้าสู่ระบบด้วย World ID");
+            handleLogin({ user: { uid: 'simulated_world_id_user' } });
+        });
+        
         // --- NEW: Google Login ---
         googleLoginBtn.addEventListener('click', async () => {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -469,12 +529,12 @@
             state.user.susanPoints += pointsToAdd;
             addTransaction(`Exchange ${wldAmount} WLD`, pointsToAdd);
             updateUI();
-            saveData(state.user.userId, { wldBalance: state.user.wldBalance, susanPoints: state.user.susanPoints, transactions: state.user.transactions });
+            saveData('users', state.user.userId, { wldBalance: state.user.wldBalance, susanPoints: state.user.susanPoints, transactions: state.user.transactions });
         });
 
         saveMemorialBtn.addEventListener('click', () => {
             state.user.memorial = memorialText.value;
-            saveData(state.user.userId, { memorial: state.user.memorial });
+            saveData('users', state.user.userId, { memorial: state.user.memorial });
             alert('บันทึกข้อความแล้ว');
         });
 
@@ -488,7 +548,7 @@
             state.activity = { isActive: true, startTime: Date.now(), pointsCommitted: amount };
             addTransaction('เข้าร่วมกิจกรรมปลูกป่า', -amount);
             updateUI();
-            saveData(state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
+            saveData('users', state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
             activityStartDiv.classList.add('hidden');
             activityProgressDiv.classList.remove('hidden');
             activityPointsEl.textContent = amount;
@@ -502,7 +562,8 @@
             const minutes = Math.floor((elapsed % 3600) / 60).toString().padStart(2,'0');
             const seconds = (elapsed % 60).toString().padStart(2,'0');
             activityTimerEl.textContent = `${hours}:${minutes}:${seconds}`;
-            const totalRewardPool = 60000000; const totalWater = 12000000;
+            const totalRewardPool = state.gameSettings.prizePool;
+            const totalWater = totalRewardPool / 5; // Example condition
             const userShare = state.activity.pointsCommitted / totalWater;
             const rewardPerSecond = totalRewardPool / (24 * 3600);
             const currentReward = userShare * rewardPerSecond * elapsed;
@@ -512,7 +573,8 @@
         endActivityBtn.addEventListener('click', () => {
             clearInterval(activityInterval);
             const elapsed = Math.floor((Date.now() - state.activity.startTime) / 1000);
-            const totalRewardPool = 60000000; const totalWater = 12000000;
+            const totalRewardPool = state.gameSettings.prizePool;
+            const totalWater = totalRewardPool / 5;
             const userShare = state.activity.pointsCommitted / totalWater;
             const rewardPerSecond = totalRewardPool / (24 * 3600);
             const finalReward = userShare * rewardPerSecond * elapsed;
@@ -523,7 +585,7 @@
             activityStartDiv.classList.remove('hidden');
             activityProgressDiv.classList.add('hidden');
             updateUI();
-            saveData(state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
+            saveData('users', state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
         });
         
         homeLink.addEventListener('click', (e) => {
@@ -534,11 +596,13 @@
         });
 
         buyFlowerButton.addEventListener('click', () => {
-            if (state.user.susanPoints >= 10) {
-                state.user.susanPoints -= 10;
-                addTransaction('ซื้อดอกไม้', -10);
+            const price = state.gameSettings.flowerPrice;
+            if (state.user.susanPoints >= price) {
+                state.user.susanPoints -= price;
+                addTransaction('ซื้อดอกไม้', -price);
                 updateUI();
-                saveData(state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
+                saveData('users', state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
+                flowerPriceText.textContent = `ดอกไม้จะคงอยู่ 7 วัน คะแนน Susan ของคุณถูกใช้ไป ${price} คะแนน`;
                 flowerModal.style.display = 'flex';
             } else {
                 alert('คะแนน Susan ไม่เพียงพอ!');
@@ -564,8 +628,68 @@
         });
         volumeSlider.addEventListener('input', (e) => { state.sound.volume = e.target.value; backgroundAudio.volume = state.sound.volume; });
 
-        // Initial Load
-        updateUI();
+        // --- Admin Panel Logic ---
+        adminPanelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            prizePoolInput.value = state.gameSettings.prizePool;
+            flowerPriceInput.value = state.gameSettings.flowerPrice;
+            adminModal.style.display = 'flex';
+        });
+
+        closeAdminModalBtn.addEventListener('click', () => {
+            adminModal.style.display = 'none';
+        });
+
+        saveSettingsBtn.addEventListener('click', async () => {
+            const newPrizePool = parseInt(prizePoolInput.value);
+            const newFlowerPrice = parseInt(flowerPriceInput.value);
+
+            if(isNaN(newPrizePool) || isNaN(newFlowerPrice)) {
+                alert("กรุณาใส่ค่าเป็นตัวเลขเท่านั้น");
+                return;
+            }
+
+            state.gameSettings.prizePool = newPrizePool;
+            state.gameSettings.flowerPrice = newFlowerPrice;
+            
+            await saveData('settings', 'gameConfig', state.gameSettings);
+            updateUI();
+            alert("บันทึกการตั้งค่าเรียบร้อยแล้ว");
+        });
+
+        addCreditBtn.addEventListener('click', async () => {
+            const targetUserId = creditUserIdInput.value;
+            const amount = parseInt(creditAmountInput.value);
+
+            if (!targetUserId || isNaN(amount) || amount <= 0) {
+                alert("กรุณาใส่ User ID และจำนวนเงินให้ถูกต้อง");
+                return;
+            }
+
+            const targetUserData = await loadData('users', targetUserId);
+            if (!targetUserData) {
+                alert("ไม่พบ User ID นี้ในระบบ");
+                return;
+            }
+
+            const newPoints = (targetUserData.susanPoints || 0) + amount;
+            await saveData('users', targetUserId, { susanPoints: newPoints });
+            
+            creditUserIdInput.value = '';
+            creditAmountInput.value = '';
+            alert(`เติมเครดิต ${amount} คะแนนให้ User ID: ${targetUserId} สำเร็จ!`);
+        });
+
+        // --- Initial Load ---
+        async function initializeApp() {
+            const settings = await loadData('settings', 'gameConfig');
+            if (settings) {
+                state.gameSettings = settings;
+            }
+            updateUI();
+        }
+
+        initializeApp();
     };
     </script>
 </body>
