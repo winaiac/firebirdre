@@ -444,8 +444,8 @@
             adminPanelBtn.classList.toggle('hidden', !state.isAdmin);
             if (state.isLoggedIn) { 
                 usernameDisplay.textContent = state.user.displayName || state.user.worldId || state.user.userId;
-                prizePoolAmountEl.textContent = state.gameSettings.prizePool.toLocaleString();
             }
+            prizePoolAmountEl.textContent = state.gameSettings.prizePool.toLocaleString();
             wldBalanceEl.textContent = state.user.wldBalance.toFixed(2);
             susanPointsEl.textContent = state.user.susanPoints;
             memorialText.value = state.user.memorial;
