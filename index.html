@@ -72,7 +72,8 @@
         <nav class="glass-menu fixed top-0 left-0 w-full z-20 p-4 flex justify-between items-center px-8">
             <div class="flex items-center space-x-4">
                 <h1 class="text-2xl font-bold text-white">SusanAI</h1>
-                <div id="main-nav-links" class="hidden md:flex space-x-4">
+                <!-- FIXED: Removed responsive hiding classes -->
+                <div id="main-nav-links" class="flex items-center space-x-2 md:space-x-4">
                     <a href="#" id="homeLink" class="text-white hover:text-yellow-400">หน้าหลัก</a>
                     <a href="#" id="portfolioBtnNav" class="text-white hover:text-yellow-400 hidden member-only">Portfolio</a>
                     <a href="#" id="activityBtnNav" class="text-white hover:text-yellow-400 hidden member-only">กิจกรรม</a>
@@ -399,13 +400,45 @@
         skipButton.addEventListener('click', showMainApp);
         videoContainer.querySelector('video').addEventListener('ended', showMainApp);
         
-        // --- UPDATED: World ID Login (Simulation) ---
-        loginBtn.addEventListener('click', () => {
-            alert("นี่คือการจำลองการเข้าสู่ระบบด้วย World ID");
-            // Simulate a successful login without proof
-            handleLogin({ user: { uid: 'simulated_world_id_user' } });
-        });
-        
+        // --- NEW: Robust World ID Button Setup ---
+        function setupWorldIDButton() {
+            let attempts = 0;
+            const maxAttempts = 50; // Try for 5 seconds
+            const interval = setInterval(() => {
+                if (typeof IDKit !== 'undefined') {
+                    clearInterval(interval);
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'เข้าสู่ระบบ World ID';
+                    loginBtn.classList.remove('bg-gray-500', 'cursor-not-allowed');
+                    loginBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    loginBtn.addEventListener('click', () => {
+                        IDKit.open({
+                            app_id: "app_57493e6e2fb2153a6a50c98e358b4785",
+                            action: "logih",
+                            onSuccess: (proof) => {
+                                console.log("IDKit proof received:", proof);
+                                alert("ยืนยันตัวตนสำเร็จ! กำลังเข้าสู่ระบบ...");
+                                handleLogin({ user: { uid: proof.nullifier_hash }, worldIdProof: proof });
+                            },
+                            onError: (error) => {
+                                console.error("IDKit Error:", error);
+                                alert("เกิดข้อผิดพลาดในการยืนยันตัวตน");
+                            }
+                        });
+                    });
+                } else {
+                    attempts++;
+                    if (attempts > maxAttempts) {
+                        clearInterval(interval);
+                        loginBtn.textContent = 'World ID ล้มเหลว';
+                        console.error("IDKit failed to load after 5 seconds.");
+                    }
+                }
+            }, 100); // Check every 100ms
+        }
+
+        setupWorldIDButton(); // Start the check
+
         // --- NEW: Google Login ---
         googleLoginBtn.addEventListener('click', async () => {
             const provider = new firebase.auth.GoogleAuthProvider();
