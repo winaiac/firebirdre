@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- NEW: Content Security Policy to allow external scripts -->
     <meta http-equiv="Content-Security-Policy" content="
         script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://unpkg.com https://verify.worldcoin.org;
         connect-src 'self' wss://*.firebaseio.com https://susanonline-9ccbb.firebaseio.com https://verify.worldcoin.org;
@@ -20,7 +19,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <!-- UPDATED: Correct Worldcoin IDKit SDK URL -->
+    <!-- Worldcoin IDKit SDK -->
     <script src="https://unpkg.com/@worldcoin/idkit-standalone@1/dist/idkit.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
@@ -42,8 +41,6 @@
         .control-buttons-container button { background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); }
         #light-bulb { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(255, 255, 220, 0.25), transparent 60%); opacity: 0; transition: opacity 0.5s ease; pointer-events: none; z-index: 5; }
         #light-bulb.on { opacity: 1; }
-        
-        /* --- Styles for Portfolio, Chat, etc. --- */
         .collapsible-panel { position: fixed; top: 80px; right: -400px; width: 400px; height: calc(100vh - 100px); background-color: rgba(10, 10, 20, 0.8); backdrop-filter: blur(10px); border-left: 1px solid rgba(255,255,255,0.2); transition: right 0.5s ease; z-index: 100; display: flex; flex-direction: column; border-radius: 15px 0 0 15px; }
         .collapsible-panel.open { right: 0; }
         .panel-toggle-button { position: absolute; top: 50%; left: -30px; transform: translateY(-50%); width: 30px; height: 100px; background-color: rgba(10, 10, 20, 0.8); border-radius: 10px 0 0 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-left: 1px solid rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 1px solid rgba(255,255,255,0.2); }
@@ -75,15 +72,17 @@
                 <h1 class="text-2xl font-bold text-white">SusanAI</h1>
                 <div id="main-nav-links" class="flex items-center space-x-2 md:space-x-4">
                     <a href="#" id="homeLink" class="text-white hover:text-yellow-400">หน้าหลัก</a>
-                    <a href="#" id="portfolioBtnNav" class="text-white hover:text-yellow-400 hidden member-only">Portfolio</a>
-                    <a href="#" id="activityBtnNav" class="text-white hover:text-yellow-400 hidden member-only">กิจกรรม</a>
+                    <!-- NOTE: These are now always visible -->
+                    <a href="#" id="portfolioBtnNav" class="text-white hover:text-yellow-400">Portfolio</a>
+                    <a href="#" id="activityBtnNav" class="text-white hover:text-yellow-400">กิจกรรม</a>
                     <a href="#" id="ebookBtnNav" class="text-white hover:text-yellow-400">E-Book</a>
                     <a href="#" id="adminPanelBtn" class="text-yellow-300 hover:text-yellow-500 hidden">แผงควบคุมแอดมิน</a>
                 </div>
             </div>
             <div id="user-section" class="flex items-center gap-4">
                  <button id="googleLoginBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition">เข้าสู่ระบบด้วย Google</button>
-                 <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition">เข้าสู่ระบบ World ID (จำลอง)</button>
+                 <!-- CHANGE: World ID login button is now hidden -->
+                 <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition hidden">เข้าสู่ระบบ World ID (จำลอง)</button>
             </div>
             <div id="user-info" class="hidden items-center gap-4">
                 <span id="username-display" class="text-white font-semibold"></span>
@@ -98,10 +97,10 @@
 
         <main id="content-area" class="relative w-full h-full">
             <section id="home-content" class="w-full h-full flex flex-col items-center justify-center text-center p-8 opacity-0 transition-opacity duration-1000">
-                 <div class="bg-black/40 p-8 rounded-2xl shadow-xl max-w-2xl w-full">
+                <div class="bg-black/40 p-8 rounded-2xl shadow-xl max-w-2xl w-full">
                     <h2 id="welcomeTitle" class="text-3xl font-bold mb-4 text-white">ยินดีต้อนรับสู่ SusanAI</h2>
                     <p id="lastLoginText" class="text-gray-300"></p>
-                 </div>
+                </div>
             </section>
         </main>
         
@@ -114,14 +113,16 @@
                 <button data-bg="eyepp" class="text-white px-4 py-2 rounded-full transition">Pyramid</button>
                 <button data-bg="pandorap" class="text-white px-4 py-2 rounded-full transition">Pandora</button>
                 <button data-bg="yasup" class="text-white px-4 py-2 rounded-full transition">Sakura</button>
-                <button data-bg="bhuddhap" class="text-white px-4 py-2 rounded-full transition hidden member-only">Buddha</button>
-                <button data-bg="talep" class="text-white px-4 py-2 rounded-full transition hidden member-only">Sea</button>
-                <button data-bg="prasatp" class="text-white px-4 py-2 rounded-full transition hidden member-only">Castle</button>
+                <!-- NOTE: These are now always visible -->
+                <button data-bg="bhuddhap" class="text-white px-4 py-2 rounded-full transition">Buddha</button>
+                <button data-bg="talep" class="text-white px-4 py-2 rounded-full transition">Sea</button>
+                <button data-bg="prasatp" class="text-white px-4 py-2 rounded-full transition">Castle</button>
             </div>
             <button id="contactAdminBtn" class="text-white text-sm underline opacity-70 hover:opacity-100 transition">ติดต่อผู้พัฒนา</button>
         </div>
 
-        <div id="portfolioPanel" class="collapsible-panel member-only hidden">
+        <!-- NOTE: This panel is now always accessible -->
+        <div id="portfolioPanel" class="collapsible-panel">
             <div class="panel-toggle-button" onclick="document.getElementById('portfolioPanel').classList.toggle('open')">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </div>
@@ -190,28 +191,28 @@
                 <div class="space-y-4">
                     <div>
                         <label for="prizePoolInput">ตั้งค่าธนาคารกลาง (คะแนน)</label>
-                        <input type="number" id="prizePoolInput" class="admin-input">
+                        <input type="number" id="prizePoolInput" class="w-full bg-black/50 p-2 rounded">
                     </div>
                     <div>
                         <label for="flowerPriceInput">ตั้งราคาดอกไม้ (คะแนน)</label>
-                        <input type="number" id="flowerPriceInput" class="admin-input">
+                        <input type="number" id="flowerPriceInput" class="w-full bg-black/50 p-2 rounded">
                     </div>
                     <div>
                         <label for="profitCapInput">เงื่อนไขกำไรสูงสุด (%)</label>
-                        <input type="number" id="profitCapInput" class="admin-input" placeholder="เช่น 20">
+                        <input type="number" id="profitCapInput" class="w-full bg-black/50 p-2 rounded" placeholder="เช่น 20">
                     </div>
                     <button id="saveSettingsBtn" class="w-full mt-2 bg-green-600 hover:bg-green-700 p-2 rounded">บันทึกการตั้งค่า</button>
                 </div>
                 <hr class="my-6 border-gray-600">
                 <div class="space-y-4">
-                     <h3 class="text-xl font-bold">เติมเครดิตให้ผู้ใช้</h3>
+                    <h3 class="text-xl font-bold">เติมเครดิตให้ผู้ใช้</h3>
                     <div>
                         <label for="creditUserIdInput">User ID</label>
-                        <input type="text" id="creditUserIdInput" class="admin-input" placeholder="ใส่ User ID ของผู้ใช้">
+                        <input type="text" id="creditUserIdInput" class="w-full bg-black/50 p-2 rounded" placeholder="ใส่ User ID ของผู้ใช้">
                     </div>
                     <div>
                         <label for="creditAmountInput">จำนวนคะแนน</label>
-                        <input type="number" id="creditAmountInput" class="admin-input" placeholder="ใส่จำนวนคะแนนที่ต้องการเพิ่ม">
+                        <input type="number" id="creditAmountInput" class="w-full bg-black/50 p-2 rounded" placeholder="ใส่จำนวนคะแนนที่ต้องการเพิ่ม">
                     </div>
                     <button id="addCreditBtn" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 p-2 rounded">เติมเครดิต</button>
                 </div>
@@ -251,7 +252,7 @@
         const lightBulb = document.getElementById('light-bulb');
         const backgroundButtonsContainer = document.getElementById('backgroundButtons');
         const loginBtn = document.getElementById('loginBtn');
-        const googleLoginBtn = document.getElementById('googleLoginBtn'); 
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         const userSection = document.getElementById('user-section');
         const userInfo = document.getElementById('user-info');
@@ -397,19 +398,38 @@
         function showMainApp() { videoContainer.style.display = 'none'; mainAppContainer.style.display = 'block'; updateBackground('eyepp'); homeContent.style.opacity = '1'; showControlPanel(); }
         function showControlPanel() { controlPanel.classList.add('visible'); clearTimeout(controlPanelTimeout); controlPanelTimeout = setTimeout(() => { controlPanel.classList.remove('visible'); }, 10000); }
 
+        // NEW: Helper function to check if user is logged in
+        function requireLogin() {
+            if (!state.isLoggedIn) {
+                alert('กรุณาเข้าสู่ระบบด้วย Google เพื่อบันทึกข้อมูลและใช้งานฟังก์ชันนี้');
+                return false; // Requirement not met
+            }
+            return true; // User is logged in
+        }
+
         function updateUI() {
             userSection.classList.toggle('hidden', state.isLoggedIn);
             userInfo.classList.toggle('hidden', !state.isLoggedIn);
-            document.querySelectorAll('.member-only').forEach(el => el.classList.toggle('hidden', !state.isLoggedIn));
             adminPanelBtn.classList.toggle('hidden', !state.isAdmin);
+            
+            // CHANGE: Member-only content is now always visible for guests to see
+            document.querySelectorAll('.member-only').forEach(el => el.classList.remove('hidden'));
+
             if (state.isLoggedIn) { 
                 usernameDisplay.textContent = state.user.displayName || state.user.worldId || state.user.userId;
             }
+            
             prizePoolAmountEl.textContent = state.gameSettings.prizePool.toLocaleString();
             wldBalanceEl.textContent = state.user.wldBalance.toFixed(2);
             susanPointsEl.textContent = state.user.susanPoints;
             memorialText.value = state.user.memorial;
-            transactionListEl.innerHTML = state.user.transactions.map(tx => `<div class="text-sm ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}">${tx.desc}: ${tx.amount.toFixed(2)} Points</div>`).join('');
+            
+            // Display transactions or a message for guests
+            if (state.user.transactions.length > 0) {
+                transactionListEl.innerHTML = state.user.transactions.map(tx => `<div class="text-sm ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}">${tx.desc}: ${tx.amount.toFixed(2)} Points</div>`).join('');
+            } else {
+                transactionListEl.innerHTML = `<div class="text-sm text-gray-400">เข้าสู่ระบบเพื่อดูประวัติ</div>`;
+            }
         }
         
         function addTransaction(desc, amount) {
@@ -452,7 +472,9 @@
 
                 if (loadedData) {
                     loadedData.transactions = loadedData.transactions || [];
-                    state.user = { ...state.user, ...loadedData };
+                    // Reset guest state and load saved data
+                    const defaultGuestState = { susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
+                    state.user = { ...defaultGuestState, ...loadedData, userId: userId, displayName: state.user.displayName };
                 }
                 updateUI();
             } catch (error) {
@@ -465,7 +487,8 @@
             await auth.signOut();
             state.isLoggedIn = false;
             state.isAdmin = false;
-            state.user = { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" }; // Reset state
+            // Reset state to guest defaults
+            state.user = { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" }; 
             lastLoginText.textContent = "นี่คือแพลตฟอร์ม Full Stack ที่คุณสามารถปรับแต่งได้ตามต้องการ";
             updateUI();
         }
@@ -476,13 +499,13 @@
         skipButton.addEventListener('click', showMainApp);
         videoContainer.querySelector('video').addEventListener('ended', showMainApp);
         
-        // --- UPDATED: World ID Login (Simulation) ---
+        // World ID Login (Simulation) - Kept in code but button is hidden
         loginBtn.addEventListener('click', () => {
             alert("นี่คือการจำลองการเข้าสู่ระบบด้วย World ID");
             handleLogin({ user: { uid: 'simulated_world_id_user' } });
         });
         
-        // --- NEW: Google Login ---
+        // Google Login
         googleLoginBtn.addEventListener('click', async () => {
             const provider = new firebase.auth.GoogleAuthProvider();
             try {
@@ -497,6 +520,8 @@
         logoutBtn.addEventListener('click', handleLogout);
 
         inviteBtn.addEventListener('click', () => {
+            // Add login check
+            if (!requireLogin()) return;
             const inviteLink = `https://susanonline-9ccbb.web.app/?ref=${state.user.userId}`;
             navigator.clipboard.writeText(`เข้าร่วม SusanAI Online และรับสิทธิพิเศษ! สนับสนุนโดยแอป Susan Online: ${inviteLink}`);
             alert('คัดลอกลิงก์เชิญแล้ว!');
@@ -505,6 +530,8 @@
         portfolioBtnNav.addEventListener('click', (e) => { e.preventDefault(); portfolioPanel.classList.toggle('open'); });
         
         exchangeBtn.addEventListener('click', () => {
+            // Add login check
+            if (!requireLogin()) return;
             const wldAmount = parseFloat(document.getElementById('wldAmountInput').value);
             if (isNaN(wldAmount) || wldAmount <= 0 || wldAmount > state.user.wldBalance) { alert('จำนวน WLD ไม่ถูกต้อง'); return; }
             const pointsToAdd = wldAmount * 50;
@@ -516,6 +543,8 @@
         });
 
         saveMemorialBtn.addEventListener('click', () => {
+            // Add login check
+            if (!requireLogin()) return;
             state.user.memorial = memorialText.value;
             saveData('users', state.user.userId, { memorial: state.user.memorial });
             alert('บันทึกข้อความแล้ว');
@@ -525,6 +554,8 @@
         activityModal.addEventListener('click', (e) => { if(e.target === activityModal) activityModal.style.display = 'none'; });
 
         startActivityBtn.addEventListener('click', () => {
+            // Add login check
+            if (!requireLogin()) return;
             const amount = parseInt(document.getElementById('waterAmountInput').value);
             if (isNaN(amount) || amount <= 0 || amount > state.user.susanPoints) { alert('คะแนนไม่ถูกต้อง'); return; }
             
@@ -561,6 +592,7 @@
         }
 
         endActivityBtn.addEventListener('click', () => {
+            // No need to check login here, as you must be logged in to start
             clearInterval(activityInterval);
             const elapsed = Math.floor((Date.now() - state.activity.startTime) / 1000);
             const totalRewardPool = state.gameSettings.prizePool;
@@ -586,6 +618,8 @@
         });
 
         buyFlowerButton.addEventListener('click', () => {
+            // Add login check
+            if (!requireLogin()) return;
             const price = state.gameSettings.flowerPrice;
             if (state.user.susanPoints >= price) {
                 state.user.susanPoints -= price;
@@ -677,7 +711,7 @@
 
         // --- Initial Load ---
         function initializeApp() {
-            // UPDATED: Listen for real-time settings changes
+            // Listen for real-time settings changes
             db.collection('settings').doc('gameConfig').onSnapshot((doc) => {
                 if (doc.exists) {
                     console.log("Game settings updated:", doc.data());
@@ -694,6 +728,7 @@
                 if (user) {
                     await handleLogin({ user, providerData: user.providerData });
                 } else {
+                    // If no user, just update UI for guest view
                     updateUI();
                 }
             });
