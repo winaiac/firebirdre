@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
         script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://unpkg.com https://verify.worldcoin.org;
-        connect-src 'self' wss://*.firebaseio.com https://susanonline-9ccbb.firebaseio.com https://verify.worldcoin.org;
+        connect-src 'self' wss://*.firebaseio.com https://*.firebaseio.com https://www.googleapis.com https://firestore.googleapis.com https://verify.worldcoin.org;
         frame-src 'self' https://verify.worldcoin.org;
         img-src 'self' data: https://*;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
@@ -15,10 +15,6 @@
     ">
     <title>SusanAI Online - Full Stack Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <!-- Worldcoin IDKit SDK -->
     <script src="https://unpkg.com/@worldcoin/idkit-standalone@1/dist/idkit.js"></script>
     <style>
@@ -72,7 +68,6 @@
                 <h1 class="text-2xl font-bold text-white">SusanAI</h1>
                 <div id="main-nav-links" class="flex items-center space-x-2 md:space-x-4">
                     <a href="#" id="homeLink" class="text-white hover:text-yellow-400">หน้าหลัก</a>
-                    <!-- NOTE: These are now always visible -->
                     <a href="#" id="portfolioBtnNav" class="text-white hover:text-yellow-400">Portfolio</a>
                     <a href="#" id="activityBtnNav" class="text-white hover:text-yellow-400">กิจกรรม</a>
                     <a href="#" id="ebookBtnNav" class="text-white hover:text-yellow-400">E-Book</a>
@@ -81,7 +76,6 @@
             </div>
             <div id="user-section" class="flex items-center gap-4">
                  <button id="googleLoginBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition">เข้าสู่ระบบด้วย Google</button>
-                 <!-- CHANGE: World ID login button is now hidden -->
                  <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition hidden">เข้าสู่ระบบ World ID (จำลอง)</button>
             </div>
             <div id="user-info" class="hidden items-center gap-4">
@@ -113,15 +107,14 @@
                 <button data-bg="eyepp" class="text-white px-4 py-2 rounded-full transition">Pyramid</button>
                 <button data-bg="pandorap" class="text-white px-4 py-2 rounded-full transition">Pandora</button>
                 <button data-bg="yasup" class="text-white px-4 py-2 rounded-full transition">Sakura</button>
-                <!-- NOTE: These are now always visible -->
                 <button data-bg="bhuddhap" class="text-white px-4 py-2 rounded-full transition">Buddha</button>
                 <button data-bg="talep" class="text-white px-4 py-2 rounded-full transition">Sea</button>
                 <button data-bg="prasatp" class="text-white px-4 py-2 rounded-full transition">Castle</button>
             </div>
-            <button id="contactAdminBtn" class="text-white text-sm underline opacity-70 hover:opacity-100 transition">ติดต่อผู้พัฒนา</button>
+            <!-- CHANGE: Updated button text -->
+            <button id="contactAdminBtn" class="text-white text-sm underline opacity-70 hover:opacity-100 transition">[ ติดต่อแอดมิน:ผู้พัฒนา ]</button>
         </div>
 
-        <!-- NOTE: This panel is now always accessible -->
         <div id="portfolioPanel" class="collapsible-panel">
             <div class="panel-toggle-button" onclick="document.getElementById('portfolioPanel').classList.toggle('open')">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
@@ -222,9 +215,11 @@
 
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <script>
-    window.onload = () => {
-        // --- Firebase Configuration ---
         const firebaseConfig = {
             apiKey: "AIzaSyConQt3RWBYU3XGyTWvhU6O5SKk3mTgCHo",
             authDomain: "susanonline-9ccbb.firebaseapp.com",
@@ -235,12 +230,10 @@
             measurementId: "G-8EF06Q3DNH"
         };
 
-        // --- Initialize Firebase ---
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // --- Elements ---
         const videoContainer = document.getElementById('videoContainer');
         const skipButton = document.getElementById('skipButton');
         const mainAppContainer = document.getElementById('mainAppContainer');
@@ -292,7 +285,6 @@
         const lastLoginText = document.getElementById('lastLoginText');
         const contactAdminBtn = document.getElementById('contactAdminBtn');
         
-        // Admin Elements
         const adminPanelBtn = document.getElementById('adminPanelBtn');
         const adminModal = document.getElementById('adminModal');
         const closeAdminModalBtn = document.getElementById('closeAdminModalBtn');
@@ -304,12 +296,12 @@
         const creditAmountInput = document.getElementById('creditAmountInput');
         const addCreditBtn = document.getElementById('addCreditBtn');
 
-
         const ctx = effectCanvas.getContext('2d');
         let animationFrameId = null, activeEffect = null, controlPanelTimeout, activityInterval;
+        let settingsListenerUnsubscribe = null;
 
-        // --- State Management ---
         let state = {
+            authStatus: 'guest', // 'guest', 'authenticated', 'simulated'
             isLoggedIn: false,
             isLightOn: false,
             isAdmin: false,
@@ -319,9 +311,8 @@
             gameSettings: { prizePool: 6000, flowerPrice: 10, profitCap: 20 }
         };
 
-        // --- Firebase Functions ---
         async function saveData(collection, docId, data) {
-            if (!docId) return;
+            if (!docId || state.authStatus !== 'authenticated') return; // Only save for real users
             try {
                 await db.collection(collection).doc(docId).set(data, { merge: true });
             } catch (error) {
@@ -353,7 +344,6 @@
             prasatp: { src: 'https://winaiac.github.io/firebirdre/prasatp.png', effect: 'bubbles' }
         };
         
-        // --- Canvas & Effects Logic (No changes) ---
         function resizeCanvas() { effectCanvas.width = window.innerWidth; effectCanvas.height = window.innerHeight; }
         window.addEventListener('resize', resizeCanvas); resizeCanvas();
         function clearCanvas() { ctx.clearRect(0, 0, effectCanvas.width, effectCanvas.height); }
@@ -394,29 +384,27 @@
 
         function animateLoop() { if (activeEffect) activeEffect(); animationFrameId = requestAnimationFrame(animateLoop); }
 
-        // --- UI & App Flow ---
         function showMainApp() { videoContainer.style.display = 'none'; mainAppContainer.style.display = 'block'; updateBackground('eyepp'); homeContent.style.opacity = '1'; showControlPanel(); }
         function showControlPanel() { controlPanel.classList.add('visible'); clearTimeout(controlPanelTimeout); controlPanelTimeout = setTimeout(() => { controlPanel.classList.remove('visible'); }, 10000); }
 
-        // NEW: Helper function to check if user is logged in
         function requireLogin() {
-            if (!state.isLoggedIn) {
+            if (state.authStatus !== 'authenticated') {
                 alert('กรุณาเข้าสู่ระบบด้วย Google เพื่อบันทึกข้อมูลและใช้งานฟังก์ชันนี้');
-                return false; // Requirement not met
+                return false;
             }
-            return true; // User is logged in
+            return true;
         }
 
         function updateUI() {
-            userSection.classList.toggle('hidden', state.isLoggedIn);
-            userInfo.classList.toggle('hidden', !state.isLoggedIn);
+            const showUserInfo = state.authStatus === 'authenticated' || state.authStatus === 'simulated';
+            userSection.classList.toggle('hidden', showUserInfo);
+            userInfo.classList.toggle('hidden', !showUserInfo);
             adminPanelBtn.classList.toggle('hidden', !state.isAdmin);
             
-            // CHANGE: Member-only content is now always visible for guests to see
             document.querySelectorAll('.member-only').forEach(el => el.classList.remove('hidden'));
 
-            if (state.isLoggedIn) { 
-                usernameDisplay.textContent = state.user.displayName || state.user.worldId || state.user.userId;
+            if (showUserInfo) { 
+                usernameDisplay.textContent = state.user.displayName || state.user.worldId || 'ผู้ใช้ (จำลอง)';
             }
             
             prizePoolAmountEl.textContent = state.gameSettings.prizePool.toLocaleString();
@@ -424,8 +412,7 @@
             susanPointsEl.textContent = state.user.susanPoints;
             memorialText.value = state.user.memorial;
             
-            // Display transactions or a message for guests
-            if (state.user.transactions.length > 0) {
+            if (state.user.transactions.length > 0 && state.authStatus === 'authenticated') {
                 transactionListEl.innerHTML = state.user.transactions.map(tx => `<div class="text-sm ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}">${tx.desc}: ${tx.amount.toFixed(2)} Points</div>`).join('');
             } else {
                 transactionListEl.innerHTML = `<div class="text-sm text-gray-400">เข้าสู่ระบบเพื่อดูประวัติ</div>`;
@@ -454,25 +441,23 @@
                 await saveData('users', userId, { lastLogin: firebase.firestore.FieldValue.serverTimestamp() });
 
                 state.isLoggedIn = true;
+                state.authStatus = 'authenticated';
                 state.user.userId = userId;
                 
-                // Check if admin
                 if (userEmail === 'winayo@gmail.com') {
                     state.isAdmin = true;
                 }
                 
-                // Check login type
                 if (loginResult.providerData && loginResult.providerData[0].providerId === 'google.com') {
                     state.user.displayName = loginResult.user.displayName;
-                    state.user.worldId = null; // Clear worldId if logging in with Google
-                } else { // World ID or Anonymous
+                    state.user.worldId = null;
+                } else {
                     state.user.displayName = null;
                     state.user.worldId = "@winai.9407"; 
                 }
 
                 if (loadedData) {
                     loadedData.transactions = loadedData.transactions || [];
-                    // Reset guest state and load saved data
                     const defaultGuestState = { susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
                     state.user = { ...defaultGuestState, ...loadedData, userId: userId, displayName: state.user.displayName };
                 }
@@ -483,44 +468,41 @@
         }
 
         async function handleLogout() {
-            await saveData('users', state.user.userId, { lastLogout: firebase.firestore.FieldValue.serverTimestamp() });
-            await auth.signOut();
-            state.isLoggedIn = false;
-            state.isAdmin = false;
-            // Reset state to guest defaults
-            state.user = { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" }; 
-            lastLoginText.textContent = "นี่คือแพลตฟอร์ม Full Stack ที่คุณสามารถปรับแต่งได้ตามต้องการ";
-            updateUI();
+            if (state.authStatus === 'authenticated') {
+                await saveData('users', state.user.userId, { lastLogout: firebase.firestore.FieldValue.serverTimestamp() });
+                await auth.signOut();
+            } else {
+                // For simulated users, just reset the state
+                state.authStatus = 'guest';
+                state.isLoggedIn = false;
+                state.isAdmin = false;
+                state.user = { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
+                updateUI();
+            }
         }
 
-        // --- Event Listeners ---
         window.addEventListener('click', showControlPanel);
         window.addEventListener('mousemove', showControlPanel);
         skipButton.addEventListener('click', showMainApp);
         videoContainer.querySelector('video').addEventListener('ended', showMainApp);
         
-        // World ID Login (Simulation) - Kept in code but button is hidden
         loginBtn.addEventListener('click', () => {
             alert("นี่คือการจำลองการเข้าสู่ระบบด้วย World ID");
             handleLogin({ user: { uid: 'simulated_world_id_user' } });
         });
         
-        // Google Login
-        googleLoginBtn.addEventListener('click', async () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            try {
-                const result = await auth.signInWithPopup(provider);
-                handleLogin({ user: result.user, providerData: result.user.providerData });
-            } catch (error) {
-                console.error("Google Login Error:", error);
-                alert("เกิดข้อผิดพลาดในการล็อกอินด้วย Google");
-            }
+        googleLoginBtn.addEventListener('click', () => {
+            alert("เนื่องจากข้อจำกัดของสภาพแวดล้อมการแสดงผล นี่คือการจำลองการเข้าสู่ระบบ\nในแอปจริงจะใช้ Google Login ตามปกติ");
+            state.authStatus = 'simulated';
+            state.isLoggedIn = true; // For UI logic
+            state.user.displayName = "ผู้ใช้ (จำลอง)";
+            updateUI();
         });
+
 
         logoutBtn.addEventListener('click', handleLogout);
 
         inviteBtn.addEventListener('click', () => {
-            // Add login check
             if (!requireLogin()) return;
             const inviteLink = `https://susanonline-9ccbb.web.app/?ref=${state.user.userId}`;
             navigator.clipboard.writeText(`เข้าร่วม SusanAI Online และรับสิทธิพิเศษ! สนับสนุนโดยแอป Susan Online: ${inviteLink}`);
@@ -530,7 +512,6 @@
         portfolioBtnNav.addEventListener('click', (e) => { e.preventDefault(); portfolioPanel.classList.toggle('open'); });
         
         exchangeBtn.addEventListener('click', () => {
-            // Add login check
             if (!requireLogin()) return;
             const wldAmount = parseFloat(document.getElementById('wldAmountInput').value);
             if (isNaN(wldAmount) || wldAmount <= 0 || wldAmount > state.user.wldBalance) { alert('จำนวน WLD ไม่ถูกต้อง'); return; }
@@ -543,7 +524,6 @@
         });
 
         saveMemorialBtn.addEventListener('click', () => {
-            // Add login check
             if (!requireLogin()) return;
             state.user.memorial = memorialText.value;
             saveData('users', state.user.userId, { memorial: state.user.memorial });
@@ -554,7 +534,6 @@
         activityModal.addEventListener('click', (e) => { if(e.target === activityModal) activityModal.style.display = 'none'; });
 
         startActivityBtn.addEventListener('click', () => {
-            // Add login check
             if (!requireLogin()) return;
             const amount = parseInt(document.getElementById('waterAmountInput').value);
             if (isNaN(amount) || amount <= 0 || amount > state.user.susanPoints) { alert('คะแนนไม่ถูกต้อง'); return; }
@@ -584,7 +563,7 @@
             const seconds = (elapsed % 60).toString().padStart(2,'0');
             activityTimerEl.textContent = `${hours}:${minutes}:${seconds}`;
             const totalRewardPool = state.gameSettings.prizePool;
-            const totalWater = totalRewardPool / 5; // Example condition
+            const totalWater = totalRewardPool / 5;
             const userShare = state.activity.pointsCommitted / totalWater;
             const rewardPerSecond = totalRewardPool / (24 * 3600);
             const currentReward = userShare * rewardPerSecond * elapsed;
@@ -592,7 +571,6 @@
         }
 
         endActivityBtn.addEventListener('click', () => {
-            // No need to check login here, as you must be logged in to start
             clearInterval(activityInterval);
             const elapsed = Math.floor((Date.now() - state.activity.startTime) / 1000);
             const totalRewardPool = state.gameSettings.prizePool;
@@ -618,7 +596,6 @@
         });
 
         buyFlowerButton.addEventListener('click', () => {
-            // Add login check
             if (!requireLogin()) return;
             const price = state.gameSettings.flowerPrice;
             if (state.user.susanPoints >= price) {
@@ -644,7 +621,6 @@
             }
         });
 
-        // Sound Controls
         soundToggleBtn.addEventListener('click', () => {
             state.sound.isPlaying = !state.sound.isPlaying;
             if (state.sound.isPlaying) { backgroundAudio.play(); soundOnIcon.classList.remove('hidden'); soundOffIcon.classList.add('hidden'); } 
@@ -652,7 +628,6 @@
         });
         volumeSlider.addEventListener('input', (e) => { state.sound.volume = e.target.value; backgroundAudio.volume = state.sound.volume; });
 
-        // --- Admin Panel Logic ---
         adminPanelBtn.addEventListener('click', (e) => {
             e.preventDefault();
             prizePoolInput.value = state.gameSettings.prizePool;
@@ -707,35 +682,48 @@
         });
         
         ebookBtnNav.addEventListener('click', () => alert('E-Book Store จะเปิดให้บริการเร็วๆ นี้!'));
-        contactAdminBtn.addEventListener('click', () => alert('ผู้พัฒนา: Winai Phanarkat\nLine ID: 0926533228'));
+        
+        // CHANGE: Updated alert content
+        contactAdminBtn.addEventListener('click', () => alert('CEO : Chief Executive Officer อภิรัตน์ สมผดุง \nE-mail: apirat070@gmail.com \n\nDeveloper /Admin : วันัย ผันอากาศ \nE-mail : winayo@gmail.com \nID LINE : 0926533228'));
 
-        // --- Initial Load ---
-        function initializeApp() {
-            // Listen for real-time settings changes
-            db.collection('settings').doc('gameConfig').onSnapshot((doc) => {
+        function attachSettingsListener() {
+            if (settingsListenerUnsubscribe) {
+                settingsListenerUnsubscribe();
+            }
+            settingsListenerUnsubscribe = db.collection('settings').doc('gameConfig').onSnapshot((doc) => {
                 if (doc.exists) {
                     console.log("Game settings updated:", doc.data());
                     state.gameSettings = doc.data();
                 } else {
-                    // If settings don't exist in DB, create them with default state values
-                    saveData('settings', 'gameConfig', state.gameSettings);
+                    console.warn("Settings document 'gameConfig' does not exist. It can be created from the admin panel.");
                 }
                 updateUI();
+            }, (error) => {
+                console.error("Error in gameConfig snapshot listener:", error);
             });
+        }
 
-            // Check for existing user session
+        function initializeApp() {
             auth.onAuthStateChanged(async (user) => {
-                if (user) {
+                if (user && !user.isAnonymous) {
+                    attachSettingsListener();
                     await handleLogin({ user, providerData: user.providerData });
                 } else {
-                    // If no user, just update UI for guest view
+                    if (settingsListenerUnsubscribe) {
+                        settingsListenerUnsubscribe();
+                        settingsListenerUnsubscribe = null;
+                    }
+                    state.authStatus = 'guest';
+                    state.isLoggedIn = false;
+                    state.isAdmin = false;
+                    state.user = { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
+                    lastLoginText.textContent = "นี่คือแพลตฟอร์ม Full Stack ที่คุณสามารถปรับแต่งได้ตามต้องการ";
                     updateUI();
                 }
             });
         }
 
         initializeApp();
-    };
     </script>
 </body>
 </html>
