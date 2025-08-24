@@ -8,7 +8,7 @@
         script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://unpkg.com https://verify.worldcoin.org;
         connect-src 'self' wss://*.firebaseio.com https://*.firebaseio.com https://www.googleapis.com https://firestore.googleapis.com https://verify.worldcoin.org;
         frame-src 'self' https://verify.worldcoin.org;
-        img-src 'self' data: https://*;
+        img-src 'self' data: https:;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src 'self' https://fonts.gstatic.com;
         media-src 'self' https://*;
@@ -35,8 +35,18 @@
         .control-panel.visible { bottom: 1rem; }
         .control-buttons-container { display: flex; gap: 1rem; background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(5px); padding: 0.75rem 1.5rem; border-radius: 9999px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
         .control-buttons-container button { background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); }
-        #light-bulb { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(255, 255, 220, 0.25), transparent 60%); opacity: 0; transition: opacity 0.5s ease; pointer-events: none; z-index: 5; }
-        #light-bulb.on { opacity: 1; }
+        
+        /* NEW: Light effects styling */
+        .light-sparkle { position: fixed; top: 0; width: 15%; height: 100%; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 0.5s ease; background: radial-gradient(ellipse at center, rgba(255, 255, 224, 0.3) 0%, rgba(255, 255, 224, 0) 70%); }
+        .light-sparkle.on { opacity: 1; }
+        #left-sparkle { left: 0; }
+        #right-sparkle { right: 0; }
+        .sparkle { position: absolute; width: 3px; height: 3px; background-color: #fff; border-radius: 50%; animation: sparkle-anim 1.5s infinite; }
+        @keyframes sparkle-anim {
+            0%, 100% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
         .collapsible-panel { position: fixed; top: 80px; right: -400px; width: 400px; height: calc(100vh - 100px); background-color: rgba(10, 10, 20, 0.8); backdrop-filter: blur(10px); border-left: 1px solid rgba(255,255,255,0.2); transition: right 0.5s ease; z-index: 100; display: flex; flex-direction: column; border-radius: 15px 0 0 15px; }
         .collapsible-panel.open { right: 0; }
         .panel-toggle-button { position: absolute; top: 50%; left: -30px; transform: translateY(-50%); width: 30px; height: 100px; background-color: rgba(10, 10, 20, 0.8); border-radius: 10px 0 0 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-left: 1px solid rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.2); border-bottom: 1px solid rgba(255,255,255,0.2); }
@@ -57,7 +67,10 @@
     </div>
 
     <div id="mainAppContainer" class="main-app-container">
-        <div id="light-bulb"></div>
+        <!-- NEW: Light effect containers -->
+        <div id="left-sparkle" class="light-sparkle"></div>
+        <div id="right-sparkle" class="light-sparkle"></div>
+
         <div class="background-container">
             <img id="bgImage" class="background-image" src="https://winaiac.github.io/firebirdre/eyepp.png">
             <canvas id="effectCanvas" class="background-canvas"></canvas>
@@ -111,7 +124,6 @@
                 <button data-bg="talep" class="text-white px-4 py-2 rounded-full transition">Sea</button>
                 <button data-bg="prasatp" class="text-white px-4 py-2 rounded-full transition">Castle</button>
             </div>
-            <!-- CHANGE: Updated button text -->
             <button id="contactAdminBtn" class="text-white text-sm underline opacity-70 hover:opacity-100 transition">[ ติดต่อแอดมิน:ผู้พัฒนา ]</button>
         </div>
 
@@ -137,8 +149,29 @@
                 </div>
                 <h4 class="text-xl font-bold mt-6 mb-2">ประวัติธุรกรรม</h4>
                 <div id="transactionList" class="space-y-2 max-h-40 overflow-y-auto"></div>
-                <h4 class="text-xl font-bold mt-6 mb-2">บันทึกถึงผู้ล่วงลับ</h4>
-                <textarea id="memorialText" class="w-full h-32 bg-black/50 p-2 rounded" placeholder="เขียนข้อความของคุณที่นี่..."></textarea>
+                
+                <!-- NEW: Memorial Information Section -->
+                <h4 class="text-xl font-bold mt-6 mb-2">ข้อมูลผู้ล่วงลับ</h4>
+                <div class="space-y-3 bg-white/10 p-4 rounded-lg">
+                    <img id="memorialImage" src="https://placehold.co/100x100/333/ccc?text=รูปภาพ" class="mx-auto rounded-full w-24 h-24 object-cover border-2 border-gray-400">
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="memorialNameInput" class="w-full bg-black/50 p-2 rounded" placeholder="ชื่อผู้ล่วงลับ">
+                        <span id="flower-display" class="w-6 h-6"></span> <!-- Flower will be injected here -->
+                    </div>
+                    <div>
+                        <label class="text-sm">วันชาตะ:</label>
+                        <input type="date" id="birthDateInput" class="w-full bg-black/50 p-2 rounded">
+                    </div>
+                    <div>
+                        <label class="text-sm">วันมรณะ:</label>
+                        <input type="date" id="deathDateInput" class="w-full bg-black/50 p-2 rounded">
+                    </div>
+                     <div>
+                        <label class="text-sm">ลิงก์รูปภาพ (แนะนำ 100x100px):</label>
+                        <input type="url" id="imageUrlInput" class="w-full bg-black/50 p-2 rounded" placeholder="https://...">
+                    </div>
+                    <textarea id="memorialText" class="w-full h-24 bg-black/50 p-2 rounded" placeholder="เขียนข้อความของคุณที่นี่..."></textarea>
+                </div>
                 <button id="saveMemorialBtn" class="w-full mt-2 bg-gray-600 hover:bg-gray-700 p-2 rounded">บันทึก</button>
             </div>
         </div>
@@ -234,6 +267,7 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
+        // --- Elements ---
         const videoContainer = document.getElementById('videoContainer');
         const skipButton = document.getElementById('skipButton');
         const mainAppContainer = document.getElementById('mainAppContainer');
@@ -242,7 +276,6 @@
         const homeContent = document.getElementById('home-content');
         const controlPanel = document.getElementById('controlPanel');
         const toggleLightButton = document.getElementById('toggleLightButton');
-        const lightBulb = document.getElementById('light-bulb');
         const backgroundButtonsContainer = document.getElementById('backgroundButtons');
         const loginBtn = document.getElementById('loginBtn');
         const googleLoginBtn = document.getElementById('googleLoginBtn');
@@ -256,7 +289,6 @@
         const susanPointsEl = document.getElementById('susanPoints');
         const exchangeBtn = document.getElementById('exchangeBtn');
         const transactionListEl = document.getElementById('transactionList');
-        const memorialText = document.getElementById('memorialText');
         const saveMemorialBtn = document.getElementById('saveMemorialBtn');
         const portfolioBtnNav = document.getElementById('portfolioBtnNav');
         const activityBtnNav = document.getElementById('activityBtnNav');
@@ -285,6 +317,17 @@
         const lastLoginText = document.getElementById('lastLoginText');
         const contactAdminBtn = document.getElementById('contactAdminBtn');
         
+        // NEW: Memorial and Light effect elements
+        const memorialImage = document.getElementById('memorialImage');
+        const memorialNameInput = document.getElementById('memorialNameInput');
+        const birthDateInput = document.getElementById('birthDateInput');
+        const deathDateInput = document.getElementById('deathDateInput');
+        const imageUrlInput = document.getElementById('imageUrlInput');
+        const memorialText = document.getElementById('memorialText');
+        const flowerDisplay = document.getElementById('flower-display');
+        const leftSparkle = document.getElementById('left-sparkle');
+        const rightSparkle = document.getElementById('right-sparkle');
+
         const adminPanelBtn = document.getElementById('adminPanelBtn');
         const adminModal = document.getElementById('adminModal');
         const closeAdminModalBtn = document.getElementById('closeAdminModalBtn');
@@ -300,19 +343,33 @@
         let animationFrameId = null, activeEffect = null, controlPanelTimeout, activityInterval;
         let settingsListenerUnsubscribe = null;
 
+        // --- State Management ---
         let state = {
             authStatus: 'guest', // 'guest', 'authenticated', 'simulated'
             isLoggedIn: false,
-            isLightOn: false,
             isAdmin: false,
-            user: { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "", lastLogin: null },
+            // NEW: Expanded user object with new fields
+            user: { 
+                userId: null, 
+                displayName: null, 
+                susanPoints: 500, 
+                wldBalance: 10, 
+                transactions: [], 
+                memorial: "",
+                memorialName: "",
+                birthDate: "",
+                deathDate: "",
+                imageUrl: "",
+                hasFlower: false,
+                isLightOn: false
+            },
             activity: { isActive: false, startTime: null, pointsCommitted: 0 },
             sound: { isPlaying: false, volume: 0.5 },
             gameSettings: { prizePool: 6000, flowerPrice: 10, profitCap: 20 }
         };
 
         async function saveData(collection, docId, data) {
-            if (!docId || state.authStatus !== 'authenticated') return; // Only save for real users
+            if (!docId || state.authStatus !== 'authenticated') return;
             try {
                 await db.collection(collection).doc(docId).set(data, { merge: true });
             } catch (error) {
@@ -404,13 +461,31 @@
             document.querySelectorAll('.member-only').forEach(el => el.classList.remove('hidden'));
 
             if (showUserInfo) { 
-                usernameDisplay.textContent = state.user.displayName || state.user.worldId || 'ผู้ใช้ (จำลอง)';
+                usernameDisplay.textContent = state.user.displayName || 'ผู้ใช้ (จำลอง)';
             }
             
             prizePoolAmountEl.textContent = state.gameSettings.prizePool.toLocaleString();
             wldBalanceEl.textContent = state.user.wldBalance.toFixed(2);
             susanPointsEl.textContent = state.user.susanPoints;
-            memorialText.value = state.user.memorial;
+
+            // Update memorial fields
+            memorialNameInput.value = state.user.memorialName || '';
+            birthDateInput.value = state.user.birthDate || '';
+            deathDateInput.value = state.user.deathDate || '';
+            imageUrlInput.value = state.user.imageUrl || '';
+            memorialText.value = state.user.memorial || '';
+            memorialImage.src = state.user.imageUrl || 'https://placehold.co/100x100/333/ccc?text=รูปภาพ';
+
+            // Update flower display
+            if (state.user.hasFlower) {
+                flowerDisplay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-pink-400"><path d="M12 2c-.6 0-1.2.2-1.7.6L3.6 8.4c-.5.4-.8 1-.8 1.6v.1c0 .6.3 1.2.8 1.6l6.7 5.8c.5.4 1.2.6 1.7.6s1.2-.2 1.7-.6l6.7-5.8c.5-.4.8-1 .8-1.6v-.1c0-.6-.3-1.2-.8-1.6L13.7 2.6c-.5-.4-1.1-.6-1.7-.6zm0 1.5c.3 0 .6.1.9.3l6.7 5.8c.2.2.3.4.3.6s-.1.4-.3.6l-6.7 5.8c-.3.2-.6.3-.9.3s-.6-.1-.9-.3L4.4 10.9c-.2-.2-.3-.4-.3-.6s.1-.4.3-.6l6.7-5.8c.3-.2.6-.3.9-.3zM12 20c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>`;
+            } else {
+                flowerDisplay.innerHTML = '';
+            }
+
+            // Update light effect
+            toggleLightEffect(state.user.isLightOn);
+            toggleLightButton.textContent = state.user.isLightOn ? 'ปิดไฟ' : 'เปิดไฟ';
             
             if (state.user.transactions.length > 0 && state.authStatus === 'authenticated') {
                 transactionListEl.innerHTML = state.user.transactions.map(tx => `<div class="text-sm ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}">${tx.desc}: ${tx.amount.toFixed(2)} Points</div>`).join('');
@@ -448,18 +523,11 @@
                     state.isAdmin = true;
                 }
                 
-                if (loginResult.providerData && loginResult.providerData[0].providerId === 'google.com') {
-                    state.user.displayName = loginResult.user.displayName;
-                    state.user.worldId = null;
-                } else {
-                    state.user.displayName = null;
-                    state.user.worldId = "@winai.9407"; 
-                }
-
+                state.user.displayName = loginResult.user.displayName;
+                
                 if (loadedData) {
-                    loadedData.transactions = loadedData.transactions || [];
-                    const defaultGuestState = { susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
-                    state.user = { ...defaultGuestState, ...loadedData, userId: userId, displayName: state.user.displayName };
+                    // Merge loaded data with defaults
+                    state.user = { ...state.user, ...loadedData };
                 }
                 updateUI();
             } catch (error) {
@@ -476,8 +544,35 @@
                 state.authStatus = 'guest';
                 state.isLoggedIn = false;
                 state.isAdmin = false;
-                state.user = { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
+                state.user = { userId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "", memorialName: "", birthDate: "", deathDate: "", imageUrl: "", hasFlower: false, isLightOn: false };
                 updateUI();
+            }
+        }
+
+        // --- NEW: Light effect logic ---
+        function toggleLightEffect(isOn) {
+            if (isOn) {
+                leftSparkle.classList.add('on');
+                rightSparkle.classList.add('on');
+                // Add sparkles dynamically
+                for(let i = 0; i < 15; i++) {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.style.top = `${Math.random() * 100}%`;
+                    sparkle.style.left = `${Math.random() * 100}%`;
+                    sparkle.style.animationDelay = `${Math.random() * 1.5}s`;
+                    leftSparkle.appendChild(sparkle);
+                    
+                    const sparkle2 = sparkle.cloneNode();
+                    sparkle2.style.top = `${Math.random() * 100}%`;
+                    sparkle2.style.left = `${Math.random() * 100}%`;
+                    rightSparkle.appendChild(sparkle2);
+                }
+            } else {
+                leftSparkle.classList.remove('on');
+                rightSparkle.classList.remove('on');
+                leftSparkle.innerHTML = '';
+                rightSparkle.innerHTML = '';
             }
         }
 
@@ -494,11 +589,10 @@
         googleLoginBtn.addEventListener('click', () => {
             alert("เนื่องจากข้อจำกัดของสภาพแวดล้อมการแสดงผล นี่คือการจำลองการเข้าสู่ระบบ\nในแอปจริงจะใช้ Google Login ตามปกติ");
             state.authStatus = 'simulated';
-            state.isLoggedIn = true; // For UI logic
+            state.isLoggedIn = true;
             state.user.displayName = "ผู้ใช้ (จำลอง)";
             updateUI();
         });
-
 
         logoutBtn.addEventListener('click', handleLogout);
 
@@ -523,11 +617,24 @@
             saveData('users', state.user.userId, { wldBalance: state.user.wldBalance, susanPoints: state.user.susanPoints, transactions: state.user.transactions });
         });
 
+        // UPDATED: Save all memorial fields
         saveMemorialBtn.addEventListener('click', () => {
             if (!requireLogin()) return;
+            state.user.memorialName = memorialNameInput.value;
+            state.user.birthDate = birthDateInput.value;
+            state.user.deathDate = deathDateInput.value;
+            state.user.imageUrl = imageUrlInput.value;
             state.user.memorial = memorialText.value;
-            saveData('users', state.user.userId, { memorial: state.user.memorial });
-            alert('บันทึกข้อความแล้ว');
+            
+            saveData('users', state.user.userId, { 
+                memorialName: state.user.memorialName,
+                birthDate: state.user.birthDate,
+                deathDate: state.user.deathDate,
+                imageUrl: state.user.imageUrl,
+                memorial: state.user.memorial
+            });
+            updateUI(); // To update image if URL changed
+            alert('บันทึกข้อมูลแล้ว');
         });
 
         activityBtnNav.addEventListener('click', (e) => { e.preventDefault(); activityModal.style.display = 'flex'; });
@@ -600,10 +707,11 @@
             const price = state.gameSettings.flowerPrice;
             if (state.user.susanPoints >= price) {
                 state.user.susanPoints -= price;
+                state.user.hasFlower = true;
                 addTransaction('ซื้อดอกไม้', -price);
                 updateUI();
-                saveData('users', state.user.userId, { susanPoints: state.user.susanPoints, transactions: state.user.transactions });
-                flowerPriceText.textContent = `ดอกไม้จะคงอยู่ 7 วัน คะแนน Susan ของคุณถูกใช้ไป ${price} คะแนน`;
+                saveData('users', state.user.userId, { susanPoints: state.user.susanPoints, hasFlower: true, transactions: state.user.transactions });
+                flowerPriceText.textContent = `คุณได้มอบดอกไม้แล้ว คะแนน Susan ของคุณถูกใช้ไป ${price} คะแนน`;
                 flowerModal.style.display = 'flex';
             } else {
                 alert('คะแนน Susan ไม่เพียงพอ!');
@@ -627,6 +735,14 @@
             else { backgroundAudio.pause(); soundOnIcon.classList.add('hidden'); soundOffIcon.classList.remove('hidden'); }
         });
         volumeSlider.addEventListener('input', (e) => { state.sound.volume = e.target.value; backgroundAudio.volume = state.sound.volume; });
+
+        // UPDATED: Light toggle logic
+        toggleLightButton.addEventListener('click', () => {
+            if (!requireLogin()) return;
+            state.user.isLightOn = !state.user.isLightOn;
+            updateUI();
+            saveData('users', state.user.userId, { isLightOn: state.user.isLightOn });
+        });
 
         adminPanelBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -683,7 +799,6 @@
         
         ebookBtnNav.addEventListener('click', () => alert('E-Book Store จะเปิดให้บริการเร็วๆ นี้!'));
         
-        // CHANGE: Updated alert content
         contactAdminBtn.addEventListener('click', () => alert('CEO : Chief Executive Officer อภิรัตน์ สมผดุง \nE-mail: apirat070@gmail.com \n\nDeveloper /Admin : วันัย ผันอากาศ \nE-mail : winayo@gmail.com \nID LINE : 0926533228'));
 
         function attachSettingsListener() {
@@ -716,7 +831,8 @@
                     state.authStatus = 'guest';
                     state.isLoggedIn = false;
                     state.isAdmin = false;
-                    state.user = { userId: null, worldId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "" };
+                    // NEW: Expanded reset state for guest
+                    state.user = { userId: null, displayName: null, susanPoints: 500, wldBalance: 10, transactions: [], memorial: "", memorialName: "", birthDate: "", deathDate: "", imageUrl: "", hasFlower: false, isLightOn: false };
                     lastLoginText.textContent = "นี่คือแพลตฟอร์ม Full Stack ที่คุณสามารถปรับแต่งได้ตามต้องการ";
                     updateUI();
                 }
